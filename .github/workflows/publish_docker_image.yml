@@ -7,7 +7,7 @@ name: publish-docker-image
 on:
   push:
     tags:
-      - 'v*'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 jobs:
   push-docker-images:
     runs-on: ubuntu-latest
