@@ -42,8 +42,13 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Extract Git Tag
-        run: echo "TAG=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_ENV
+      - uses: olegtarasov/get-tag@v2.1
+        id: tagName
+      - name: Some other step # Output usage example
+        with:
+          tagname: ${{ steps.tagName.outputs.tag }}
+      - name: echo tag name
+        run: echo $GIT_TAG_NAME
       #- name: Release
       #  run: make publish
       #  env:
