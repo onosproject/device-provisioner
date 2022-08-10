@@ -26,7 +26,7 @@ type Manager struct {
 
 // NewManager initializes the application manager
 func NewManager(cfg Config) *Manager {
-	log.Info("Creating manager")
+	log.Info("Creating application manager")
 	mgr := Manager{
 		Config: cfg,
 	}
@@ -35,7 +35,7 @@ func NewManager(cfg Config) *Manager {
 
 // Run runs application manager
 func (m *Manager) Run() {
-	log.Info("Starting Manager")
+	log.Info("Starting application Manager")
 	if err := m.start(); err != nil {
 		log.Fatalw("Unable to run Manager", "error", err)
 	}

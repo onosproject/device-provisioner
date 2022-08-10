@@ -9,7 +9,7 @@ export GO111MODULE=on
 
 .PHONY: build
 
-WCMP_APP_VERSION ?= latest
+DEVICE_PROVISIONER_APP_VERSION ?= latest
 
 build-tools:=$(shell if [ ! -d "./build/build-tools" ]; then mkdir -p build && cd build && git clone https://github.com/onosproject/build-tools.git; fi)
 include ./build/build-tools/make/onf-common.mk
@@ -30,3 +30,11 @@ build: mod-update
 test: # @HELP run the unit tests and source code validation producing a golang style report
 test: mod-lint build linters license
 	go test -race github.com/onosproject/device-provisioner/...
+
+
+device-provisioner-app-docker: mod-update  # @HELP build device-provisioner base Docker image
+	docker build --platform linux/amd64 . -f build/device-provisioner/Dockerfile \
+		-t ${DOCKER_REPOSITORY}device-provisioner:${DEVICE_PROVISIONER_APP_VERSION}
+
+images: # @HELP build all Docker images
+images: device-provisioner-app-docker
