@@ -54,6 +54,6 @@ jobs:
       - name: test git latest tag
         run: git describe --tags $(git rev-list --tags --max-count=1)
       - name: Release
-        run: make publish
+        run: echo $TAG
         env:
           TAG: $(git describe --tags $(git rev-list --tags --max-count=1))
