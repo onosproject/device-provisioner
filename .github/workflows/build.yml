@@ -1,0 +1,61 @@
+# SPDX-FileCopyrightText: 2022-present Intel Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+name: build
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches:
+      - master
+      - staging
+      - main
+      - develop
+  pull_request:
+    branches:
+      - master
+      - main
+      - staging
+      - develop
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # The "build" workflow
+  build:
+    # The type of runner that the job will run on
+    strategy:
+      matrix:
+        go-version: [1.18.x]
+        os: [ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v3
+      # Setup Go
+      - name: Setup Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ matrix.go-version }}
+      - uses: actions/cache@v3
+        with:
+            # In order:
+            # * Module download cache
+            # * Build cache (Linux)
+            # * Build cache (Mac)
+            # * Build cache (Windows)
+          path: |
+              ~/go/pkg/mod
+              ~/.cache/go-build
+              ~/Library/Caches/go-build
+              ~\AppData\Local\go-build
+          key: ${{ runner.os }}-go-${{ matrix.go-version }}-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+              ${{ runner.os }}-go-${{ matrix.go-version }}-     
+
+      # Run testing on the code
+      - name: Run building and testing
+        run: make test
+
