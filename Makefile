@@ -65,3 +65,8 @@ kind-only: # @HELP deploy the image without rebuilding first
 kind-only:
 	@if [ "`kind get clusters`" = '' ]; then echo "no kind cluster found" && exit 1; fi
 	kind load docker-image --name ${KIND_CLUSTER_NAME} ${DOCKER_REPOSITORY}device-provisioner:${DEVICE_PROVISIONER_APP_VERSION}
+
+
+clean:: # @HELP remove all the build artifacts
+	rm -rf ./build/_output ./vendor ./cmd/device-provisioner/device-provisioner ./cmd/onos/onos
+	go clean -testcache github.com/onosproject/device-provisioner/...
