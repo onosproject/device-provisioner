@@ -51,7 +51,9 @@ jobs:
         run: echo ${{ steps.tagName.outputs.tag }}
       - name: echo tag name
         run: echo $GIT_TAG_NAME
-      #- name: Release
-      #  run: make publish
-      #  env:
-      #    TAG: ${{ github.ref_name }}
+      - name: test git latest tag
+        run: git describe --tags $(git rev-list --tags --max-count=1)
+      - name: Release
+        run: make publish
+        env:
+          TAG: $(git describe --tags $(git rev-list --tags --max-count=1))
