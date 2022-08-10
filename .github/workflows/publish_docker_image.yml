@@ -4,7 +4,6 @@ on:
   push:
     tags:
       - 'v*'
-
 jobs:
   push-docker-images:
     runs-on: ubuntu-latest
