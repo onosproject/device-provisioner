@@ -39,6 +39,8 @@ jobs:
           strip_v: false
       - name: Use tag
         run: echo ${{steps.tag.outputs.tag}}
+      - name: print tag
+        run: echo ${{github.ref_name}}
       #- name: Release
       #  run: make publish
       #  env:
