@@ -42,11 +42,13 @@ jobs:
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - uses: olegtarasov/get-tag@v2.1
+      - name: Get latest tag
+        uses: olegtarasov/get-tag@v2.1
         id: tagName
       - name: Some other step # Output usage example
         with:
           tagname: ${{ steps.tagName.outputs.tag }}
+        run: echo ${{ steps.tagName.outputs.tag }}
       - name: echo tag name
         run: echo $GIT_TAG_NAME
       #- name: Release
