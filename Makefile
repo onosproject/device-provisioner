@@ -5,9 +5,7 @@
 SHELL = bash -e -o pipefail
 
 
-ifdef TAG
-VERSION := $(word 2, $(subst /, , $(TAG)))
-endif
+
 
 export CGO_ENABLED=1
 export GO111MODULE=on
@@ -40,7 +38,7 @@ test: mod-lint build linters license
 	go test -race github.com/onosproject/device-provisioner/...
 
 
-device-provisioner-app-docker: mod-update  # @HELP build device-provisioner base Docker image
+device-provisioner-app-docker:  # @HELP build device-provisioner base Docker image
 	docker build --platform linux/amd64 . -f build/device-provisioner/Dockerfile \
 		-t ${DOCKER_REPOSITORY}device-provisioner:${DEVICE_PROVISIONER_APP_VERSION}
 
@@ -52,8 +50,8 @@ publish: images
 	docker push onosproject/device-provisioner:latest
 
 ifdef TAG
-	docker tag onosproject/device-provisioner:latest onosproject/device-provisioner:$(VERSION)
-	docker push onosproject/device-provisioner:$(VERSION)
+	docker tag onosproject/device-provisioner:latest onosproject/device-provisioner:$(TAG)
+	docker push onosproject/device-provisioner:$(TAG)
 endif
 
 

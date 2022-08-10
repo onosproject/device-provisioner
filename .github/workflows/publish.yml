@@ -1,0 +1,41 @@
+name: publish-docker-image
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_run:
+    workflows: [release]
+    branches: [ main, master ]
+    types:
+      - completed
+jobs:
+  push-docker-images:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    strategy:
+      matrix:
+        os: [ ubuntu-latest ]
+    runs-on: ${{ matrix.os }}
+    needs: release-tag
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - name: Docker Login
+        uses: docker/login-action@v1
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+      - name: Get tag
+        id: tag
+        uses: dawidd6/action-get-tag@v1
+        with:
+          # Optionally strip `v` prefix
+          strip_v: false
+      - name: Use tag
+        run: echo ${{steps.tag.outputs.tag}}
+      #- name: Release
+      #  run: make publish
+      #  env:
+      #    TAG: ${{ github.ref_name }}

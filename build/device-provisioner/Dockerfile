@@ -10,12 +10,11 @@ WORKDIR /build
 # copy only the files that are needed for the build, exclude everything else to make better use of the docker cache
 COPY ./cmd /build/cmd
 COPY ./pkg /build/pkg
-COPY ./vendor /build/vendor
 COPY ./go.mod /build
 COPY ./go.sum /build
 
 # build the executable
-RUN go build -mod=vendor -o build/_output/device-provisioner ./cmd/device-provisioner
+RUN go build -o build/_output/device-provisioner ./cmd/device-provisioner
 
 FROM alpine:3.13
 RUN apk add libc6-compat
