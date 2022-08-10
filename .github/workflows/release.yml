@@ -12,6 +12,7 @@ on:
     branches: [main, master]
     types:
       - completed
+
 jobs:
   release-tag:
     runs-on: ubuntu-latest
