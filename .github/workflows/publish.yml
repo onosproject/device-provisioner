@@ -8,14 +8,8 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_run:
-    workflows: [release]
-    branches: [ main, master ]
-    types:
-      - completed
 jobs:
   push-docker-images:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     strategy:
       matrix:
         os: [ ubuntu-latest ]
@@ -39,8 +33,12 @@ jobs:
           strip_v: false
       - name: Use tag
         run: echo ${{steps.tag.outputs.tag}}
-      - name: print tag
-        run: echo ${{github.ref_name}}
+
+      - name: Create tag artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{github.ref_name}}
+          path: Release
       #- name: Release
       #  run: make publish
       #  env:
