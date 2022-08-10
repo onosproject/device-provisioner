@@ -4,6 +4,11 @@
 
 SHELL = bash -e -o pipefail
 
+
+ifdef TAG
+VERSION := $(word 2, $(subst /, , $(TAG)))
+endif
+
 export CGO_ENABLED=1
 export GO111MODULE=on
 
@@ -13,6 +18,9 @@ DEVICE_PROVISIONER_APP_VERSION ?= latest
 
 build-tools:=$(shell if [ ! -d "./build/build-tools" ]; then mkdir -p build && cd build && git clone https://github.com/onosproject/build-tools.git; fi)
 include ./build/build-tools/make/onf-common.mk
+
+
+
 
 mod-update: # @HELP Download the dependencies to the vendor folder
 	go mod tidy
@@ -38,3 +46,22 @@ device-provisioner-app-docker: mod-update  # @HELP build device-provisioner base
 
 images: # @HELP build all Docker images
 images: device-provisioner-app-docker
+
+
+publish: images
+	docker push onosproject/device-provisioner:latest
+
+ifdef TAG
+	docker tag onosproject/device-provisioner:latest onosproject/device-provisioner:$(VERSION)
+	docker push onosproject/device-provisioner:$(VERSION)
+endif
+
+
+
+kind: # @HELP build Docker images and add them to the currently configured kind cluster
+kind: images kind-only
+
+kind-only: # @HELP deploy the image without rebuilding first
+kind-only:
+	@if [ "`kind get clusters`" = '' ]; then echo "no kind cluster found" && exit 1; fi
+	kind load docker-image --name ${KIND_CLUSTER_NAME} ${DOCKER_REPOSITORY}device-provisioner:${DEVICE_PROVISIONER_APP_VERSION}
