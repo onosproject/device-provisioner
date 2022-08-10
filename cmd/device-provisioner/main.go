@@ -5,6 +5,7 @@
 package main
 
 import (
+	"github.com/onosproject/device-provisioner/pkg/manager"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/spf13/cobra"
 	"os"
@@ -32,7 +33,6 @@ func getRootCommand() *cobra.Command {
 	cmd.Flags().String("keyPath", "", "path to client private key")
 	cmd.Flags().String("certPath", "", "path to client certificate")
 	cmd.Flags().String("topoEndpoint", "onos-topo:5150", "topology service endpoint")
-	cmd.Flags().StringSlice("p4Plugin", []string{}, "p4 plugin")
 	return cmd
 }
 
@@ -48,6 +48,18 @@ func runRootCommand(cmd *cobra.Command, args []string) error {
 		"certPath", certPath,
 		"topoEndpoint", topoEndpoint)
 	sigCh := make(chan os.Signal, 1)
+
+	cfg := manager.Config{
+		CAPath:      caPath,
+		CertPath:    certPath,
+		KeyPath:     keyPath,
+		TopoAddress: topoEndpoint,
+		GRPCPort:    5150,
+	}
+
+	mgr := manager.NewManager(cfg)
+	mgr.Run()
+
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 	<-sigCh
 
