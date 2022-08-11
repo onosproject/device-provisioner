@@ -33,6 +33,7 @@ func getRootCommand() *cobra.Command {
 	cmd.Flags().String("keyPath", "", "path to client private key")
 	cmd.Flags().String("certPath", "", "path to client certificate")
 	cmd.Flags().String("topoEndpoint", "onos-topo:5150", "topology service endpoint")
+	cmd.Flags().StringSlice("p4Plugin", []string{}, "p4 plugin")
 	return cmd
 }
 
@@ -41,6 +42,7 @@ func runRootCommand(cmd *cobra.Command, args []string) error {
 	keyPath, _ := cmd.Flags().GetString("keyPath")
 	certPath, _ := cmd.Flags().GetString("certPath")
 	topoEndpoint, _ := cmd.Flags().GetString("topoEndpoint")
+	p4Plugins, _ := cmd.Flags().GetStringSlice("p4Plugin")
 
 	log.Infow("Starting Device Provisioner application",
 		"CaPath", caPath,
@@ -55,11 +57,11 @@ func runRootCommand(cmd *cobra.Command, args []string) error {
 		KeyPath:     keyPath,
 		TopoAddress: topoEndpoint,
 		GRPCPort:    5150,
+		P4Plugins:   p4Plugins,
 	}
 
 	mgr := manager.NewManager(cfg)
 	mgr.Run()
-
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 	<-sigCh
 

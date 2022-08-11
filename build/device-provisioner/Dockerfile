@@ -23,8 +23,8 @@ RUN apk add libc6-compat
 
 USER nobody
 
-COPY --from=build /build/build/_output/device-provisioner /usr/local/bin/device-provisioner
-COPY --from=build /build/build/_output/plugins/ /var/device-provisioner/plugins/
+COPY --from=build  /build/_output/device-provisioner /usr/local/bin/device-provisioner
+COPY --from=build  /build/_output/plugins/ /var/device-provisioner/plugins/
 
 
 ENTRYPOINT ["device-provisioner"]

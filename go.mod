@@ -3,7 +3,9 @@ module github.com/onosproject/device-provisioner
 go 1.18
 
 require (
+	github.com/onosproject/onos-api/go v0.9.31
 	github.com/onosproject/onos-lib-go v0.8.17
+	github.com/p4lang/p4runtime v1.4.0-rc.5
 	github.com/rogpeppe/go-internal v1.6.1
 	github.com/spf13/cobra v1.5.0
 	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
@@ -55,7 +57,7 @@ require (
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20210828152312-66f60bf46e71 // indirect
-	google.golang.org/grpc v1.40.0 // indirect
+	google.golang.org/grpc v1.41.0 // indirect
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/ini.v1 v1.63.2 // indirect
 	gopkg.in/square/go-jose.v1 v1.1.2 // indirect

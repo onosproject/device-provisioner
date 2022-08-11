@@ -15,6 +15,7 @@ import (
 	"os/exec"
 )
 
+// Build builds a plugin based on a given config
 func Build(cmd *cobra.Command, config Config) error {
 	provisionerModBytes, err := ioutil.ReadFile("go.mod")
 	if err != nil {
@@ -61,11 +62,13 @@ func newPluginBuilder(cmd *cobra.Command, provisionerModFile *modfile.File) *Bui
 	}
 }
 
+// Builder plugin builder
 type Builder struct {
 	cmd                *cobra.Command
 	provisionerModFile *modfile.File
 }
 
+// Build builds a plugin
 func (b *Builder) Build(plugin PluginConfig) error {
 	pluginModFile, pluginModDir, err := b.downloadPluginMod(plugin)
 	if err != nil {
@@ -143,7 +146,7 @@ func (b *Builder) buildPlugin(plugin PluginConfig, dir string) error {
 		"-trimpath",
 		"-buildmode=plugin",
 		"-gcflags='all=-N -l'",
-		"-o", fmt.Sprintf("/build/_output/plugins/%s@%s.so", plugin.Name, plugin.Version),
+		"-o", fmt.Sprintf("/build/_output/plugins/%s.%s.so", plugin.Name, plugin.Version),
 		"./")
 	if err != nil {
 		return err

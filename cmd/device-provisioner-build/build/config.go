@@ -4,10 +4,12 @@
 
 package build
 
+// Config plugin builder config
 type Config struct {
 	Plugins []PluginConfig `yaml:"plugins"`
 }
 
+// PluginConfig plugin configuration
 type PluginConfig struct {
 	Name    string `yaml:"name"`
 	Version string `yaml:"version"`

@@ -1,4 +1,11 @@
+# SPDX-FileCopyrightText: 2022-present Intel Corporation
+#
+# SPDX-License-Identifier: Apache-2.0
+
 plugins:
-  - name: basic
-    version: v1.0.0
-    path: github.com/onosproject/onos-p4-plugins/plugins/basic@master
+  #- name: basic
+  #  version: 1.0.0
+  #  path: github.com/onosproject/onos-p4-plugins/plugins/basic@p4plugin-basic-1.0.0-v0.0.11
+  - name: middleblock
+    version: 1.0.0
+    path: github.com/onosproject/onos-p4-plugins/plugins/middleblock@master

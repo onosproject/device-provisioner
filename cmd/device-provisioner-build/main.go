@@ -15,7 +15,7 @@ import (
 
 func main() {
 	cmd := &cobra.Command{
-		Use: "plugin-builder",
+		Use: "device-provisioner-build",
 		Run: func(cmd *cobra.Command, args []string) {
 			configFile, err := cmd.Flags().GetString("config")
 			if err != nil {
