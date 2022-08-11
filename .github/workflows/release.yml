@@ -12,19 +12,20 @@ on:
     branches: [main, master]
     types:
       - completed
-
 jobs:
   release-tag:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           fetch-depth: '0'
-          token: ${{ secrets.GH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Bump version and push tag
         uses: anothrNick/github-tag-action@1.36.0
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           WITH_V: true
           DEFAULT_BUMP: none

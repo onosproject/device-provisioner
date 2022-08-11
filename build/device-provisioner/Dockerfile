@@ -14,13 +14,16 @@ COPY ./go.mod /build
 COPY ./go.sum /build
 
 # build the executable
-RUN go build -o build/_output/device-provisioner ./cmd/device-provisioner
+RUN go run ./cmd/device-provisioner-build --config ./cmd/device-provisioner-build/build.yaml
+
 
 FROM alpine:3.13
 RUN apk add libc6-compat
 
 USER nobody
 
-COPY --from=build /build/build/_output/device-provisioner /usr/local/bin/device-provisioner
+COPY --from=build  /build/_output/device-provisioner /usr/local/bin/device-provisioner
+COPY --from=build  /build/_output/plugins/ /var/device-provisioner/plugins/
+
 
 ENTRYPOINT ["device-provisioner"]
