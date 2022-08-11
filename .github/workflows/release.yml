@@ -12,20 +12,36 @@ on:
     branches: [main, master]
     types:
       - completed
+
+env:
+  GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
 jobs:
   release-tag:
     runs-on: ubuntu-latest
     if: ${{ github.event.workflow_run.conclusion == 'success' }}
     steps:
       - uses: actions/checkout@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
         with:
           fetch-depth: '0'
           token: ${{ secrets.GITHUB_TOKEN }}
       - name: Bump version and push tag
-        uses: anothrNick/github-tag-action@1.36.0
+        uses: anothrNick/github-tag-action@1.39.0
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
           WITH_V: true
           DEFAULT_BUMP: none
+    #env:
+    #    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    #steps:
+    #  - id: release
+    #    uses: rymndhng/release-on-push-action@v0.23.1
+    #    env:
+    #      GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+    #    with:
+    #        bump_version_scheme: norelease
+    #        tag_prefix: v
+    #  - name: Check Output Parameters
+    #    run: |
+    #        echo "Got tag name ${{ steps.release.outputs.tag_name }}"
+    #        echo "Got release version ${{ steps.release.outputs.version }}"
