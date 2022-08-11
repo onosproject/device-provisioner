@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 
 plugins:
-  #- name: basic
-  #  version: 1.0.0
-  #  path: github.com/onosproject/onos-p4-plugins/plugins/basic@p4plugin-basic-1.0.0-v0.0.11
+  - name: basic
+    version: 1.0.0
+    path: github.com/onosproject/onos-p4-plugins/plugins/basic@ab0e579482c4facee41fcab1448610b822d36355
   - name: middleblock
     version: 1.0.0
-    path: github.com/onosproject/onos-p4-plugins/plugins/middleblock@master
+    path: github.com/onosproject/onos-p4-plugins/plugins/middleblock@ab0e579482c4facee41fcab1448610b822d36355

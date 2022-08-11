@@ -33,8 +33,6 @@ func NewManager(cfg Config) *Manager {
 	log.Info("Creating application manager")
 	p4PluginRegistry := pluginregistry.NewP4PluginRegistry()
 	for _, smp := range cfg.P4Plugins {
-		log.Info("Plugin", smp)
-
 		if err := p4PluginRegistry.RegisterPlugin(smp); err != nil {
 			log.Fatal(err)
 		}
