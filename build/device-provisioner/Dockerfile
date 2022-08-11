@@ -14,7 +14,6 @@ COPY ./go.mod /build
 COPY ./go.sum /build
 
 # build the executable
-#RUN go build -o build/_output/device-provisioner ./cmd/device-provisioner
 RUN go run ./cmd/device-provisioner-build --config ./cmd/device-provisioner-build/build.yaml
 
 
