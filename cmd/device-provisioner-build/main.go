@@ -9,7 +9,6 @@ import (
 	"github.com/onosproject/device-provisioner/cmd/device-provisioner-build/build"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
-	"io/ioutil"
 	"os"
 )
 
@@ -23,7 +22,7 @@ func main() {
 				os.Exit(1)
 			}
 
-			configBytes, err := ioutil.ReadFile(configFile)
+			configBytes, err := os.ReadFile(configFile)
 			if err != nil {
 				fmt.Fprintln(cmd.OutOrStderr(), err.Error())
 				os.Exit(1)

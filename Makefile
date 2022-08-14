@@ -18,8 +18,6 @@ build-tools:=$(shell if [ ! -d "./build/build-tools" ]; then mkdir -p build && c
 include ./build/build-tools/make/onf-common.mk
 
 
-
-
 mod-update: # @HELP Download the dependencies to the vendor folder
 	go mod tidy
 	go mod vendor
