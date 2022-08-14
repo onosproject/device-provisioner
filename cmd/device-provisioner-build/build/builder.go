@@ -10,14 +10,13 @@ import (
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"github.com/rogpeppe/go-internal/modfile"
 	"github.com/spf13/cobra"
-	"io/ioutil"
 	"os"
 	"os/exec"
 )
 
 // Build builds a plugin based on a given config
 func Build(cmd *cobra.Command, config Config) error {
-	provisionerModBytes, err := ioutil.ReadFile("go.mod")
+	provisionerModBytes, err := os.ReadFile("go.mod")
 	if err != nil {
 		return err
 	}
@@ -105,7 +104,7 @@ func (b *Builder) downloadPluginMod(plugin PluginConfig) (*modfile.File, string,
 	}
 
 	fmt.Fprintln(b.cmd.OutOrStdout(), "Parsing", modInfo.GoMod)
-	goModBytes, err := ioutil.ReadFile(modInfo.GoMod)
+	goModBytes, err := os.ReadFile(modInfo.GoMod)
 	if err != nil {
 		fmt.Fprintln(b.cmd.OutOrStderr(), "Failed to download module", plugin.Path, err)
 		return nil, "", err
