@@ -26,7 +26,7 @@ jobs:
     # The type of runner that the job will run on
     strategy:
       matrix:
-        go-version: [1.18.x]
+        go-version: [1.19.x]
         os: [ubuntu-latest]
 
     runs-on: ${{ matrix.os }}
