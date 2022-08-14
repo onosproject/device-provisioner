@@ -6,11 +6,13 @@ package pipelineconfig
 
 import (
 	"context"
-	_map "github.com/atomix/go-client/pkg/atomix/map"
-	api "github.com/atomix/runtime/api/atomix/runtime/map/v1"
+	"github.com/atomix/go-client/pkg/atomix"
+	"github.com/atomix/go-client/pkg/generic"
+	atomicmap "github.com/atomix/go-client/pkg/primitive/atomic/map"
 	p4rtapi "github.com/onosproject/onos-api/go/onos/p4rt/v1"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
+	"time"
 )
 
 var log = logging.GetLogger()
@@ -75,56 +77,90 @@ func WithPipelineConfigID(id p4rtapi.PipelineConfigID) WatchOption {
 }
 
 type configurationStore struct {
-	pipelineConfigs _map.Map[p4rtapi.PipelineConfigID, *p4rtapi.PipelineConfig]
+	pipelineconfigs atomicmap.Map[p4rtapi.PipelineConfigID, *p4rtapi.PipelineConfig]
 }
 
-func NewAtomixStore(client api.MapClient) (Store, error) {
-	pipelineConfigs, err := _map.New[p4rtapi.PipelineConfigID, *p4rtapi.PipelineConfig](client)(context.Background(),
-		"device-provisioner-pipeline-configurations",
-		_map.WithKeyType[p4rtapi.PipelineConfigID, *p4rtapi.PipelineConfig]())
-	log.Warn(err)
+func NewAtomixStore() (Store, error) {
+	m1, err := atomix.AtomicMap[p4rtapi.PipelineConfigID, *p4rtapi.PipelineConfig]("device-provisioner-pipeline-configurations").
+		Codec(generic.GoGoProto[*p4rtapi.PipelineConfig](&p4rtapi.PipelineConfig{})).
+		Get(context.Background())
+
 	if err != nil {
 		return nil, errors.FromAtomix(err)
 	}
+
 	store := &configurationStore{
-		pipelineConfigs: pipelineConfigs,
+		pipelineconfigs: m1,
 	}
 
 	return store, nil
 
 }
 
-func (c *configurationStore) Get(ctx context.Context, id p4rtapi.PipelineConfigID) (*p4rtapi.PipelineConfig, error) {
+func (s *configurationStore) Get(ctx context.Context, id p4rtapi.PipelineConfigID) (*p4rtapi.PipelineConfig, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
 func (c *configurationStore) Create(ctx context.Context, pipelineConfig *p4rtapi.PipelineConfig) error {
-	log.Infow("Creating a pipelineconfig", "pipelineconfig", pipelineConfig)
+	if pipelineConfig.ID == "" {
+		return errors.NewInvalid("no pipeline pipelineconfig ID specified")
+	}
+	if pipelineConfig.TargetID == "" {
+		return errors.NewInvalid("no target ID specified")
+	}
+	if pipelineConfig.Revision != 0 {
+		return errors.NewInvalid("cannot create pipeline pipelineconfig with revision")
+	}
+	if pipelineConfig.Version != 0 {
+		return errors.NewInvalid("cannot create pipeline pipelineconfig with version")
+	}
+	pipelineConfig.Revision = 1
+	pipelineConfig.Created = time.Now()
+	pipelineConfig.Updated = time.Now()
+
+	// Create the entry in the underlying map primitive.
+	entry, err := c.pipelineconfigs.Put(ctx, pipelineConfig.ID, pipelineConfig)
+	if err != nil {
+		return errors.FromAtomix(err)
+	}
+
+	// Decode the pipleline pipelineconfig from the returned entry bytes.
+	if err := decodePipelineConfiguration(entry, pipelineConfig); err != nil {
+		return errors.NewInvalid("pipelineconfig decoding failed: %v", err)
+	}
+
 	return nil
 }
 
-func (c *configurationStore) Update(ctx context.Context, pipelineConfig *p4rtapi.PipelineConfig) error {
+func (s *configurationStore) Update(ctx context.Context, pipelineConfig *p4rtapi.PipelineConfig) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (c *configurationStore) List(ctx context.Context) ([]*p4rtapi.PipelineConfig, error) {
+func (s *configurationStore) List(ctx context.Context) ([]*p4rtapi.PipelineConfig, error) {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (c *configurationStore) Watch(ctx context.Context, ch chan<- p4rtapi.ConfigurationEvent, opts ...WatchOption) error {
+func (s *configurationStore) Watch(ctx context.Context, ch chan<- p4rtapi.ConfigurationEvent, opts ...WatchOption) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (c *configurationStore) UpdateStatus(ctx context.Context, pipelineConfig *p4rtapi.PipelineConfig) error {
+func (s *configurationStore) UpdateStatus(ctx context.Context, pipelineConfig *p4rtapi.PipelineConfig) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (c *configurationStore) Close(ctx context.Context) error {
+func (s *configurationStore) Close(ctx context.Context) error {
 	//TODO implement me
 	panic("implement me")
+}
+
+func decodePipelineConfiguration(entry *atomicmap.Entry[p4rtapi.PipelineConfigID, *p4rtapi.PipelineConfig], pipelineConfig *p4rtapi.PipelineConfig) error {
+	pipelineConfig.ID = entry.Key
+	pipelineConfig.Key = string(entry.Key)
+	pipelineConfig.Version = uint64(entry.Version)
+	return nil
 }

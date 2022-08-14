@@ -3,8 +3,8 @@ module github.com/onosproject/device-provisioner
 go 1.18
 
 require (
-	github.com/atomix/go-client v0.6.3-0.20220729013553-815fbba7aa26
-	github.com/atomix/runtime/api v0.0.0-20220720013020-6146e7ecb7cb
+	github.com/atomix/go-client v0.6.3-0.20220813073200-32947f4319e6
+	github.com/atomix/runtime/api v0.3.0
 	github.com/onosproject/onos-api/go v0.9.31
 	github.com/onosproject/onos-lib-go v0.8.17
 	github.com/p4lang/p4runtime v1.4.0-rc.5
@@ -19,11 +19,11 @@ require (
 	github.com/VictoriaMetrics/metrics v1.6.2 // indirect
 	github.com/armon/go-metrics v0.3.10 // indirect
 	github.com/atomix/atomix-go-framework v0.10.0 // indirect
-	github.com/atomix/multi-raft-storage/api v0.0.0-20220728201523-7dcf2d5be56a // indirect
-	github.com/atomix/multi-raft-storage/driver v0.0.0-20220729004735-7ef100a1d8b2 // indirect
-	github.com/atomix/multi-raft-storage/node v0.0.0-20220729012051-c60720d92bed // indirect
-	github.com/atomix/runtime/proxy v0.0.0-20220727083205-3cca95915d8b // indirect
-	github.com/atomix/runtime/sdk v0.0.0-20220727083205-3cca95915d8b // indirect
+	github.com/atomix/multi-raft-storage/api v0.3.0 // indirect
+	github.com/atomix/multi-raft-storage/driver v0.3.2 // indirect
+	github.com/atomix/multi-raft-storage/node v0.3.0 // indirect
+	github.com/atomix/runtime/proxy v0.2.2 // indirect
+	github.com/atomix/runtime/sdk v0.3.0 // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
 	github.com/bits-and-blooms/bloom/v3 v3.2.0 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect

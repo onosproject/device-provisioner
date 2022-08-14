@@ -7,7 +7,7 @@ package pipelineconfig
 import (
 	"context"
 	"github.com/atomix/go-client/pkg/atomix/test"
-	api "github.com/atomix/runtime/api/atomix/runtime/map/v1"
+	p4rtapi "github.com/onosproject/onos-api/go/onos/p4rt/v1"
 	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
@@ -19,14 +19,10 @@ func TestNewAtomixStore(t *testing.T) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
-
-	conn1, err := cluster.Connect(ctx)
-	assert.NoError(t, err)
-	client1 := api.NewMapClient(conn1)
-
-	_, err = NewAtomixStore(client1)
+	store, err := NewAtomixStore()
 	assert.NoError(t, err)
 
-	//store.Create(ctx, &p4rtapi.PipelineConfig{})
+	err = store.Create(ctx, &p4rtapi.PipelineConfig{})
+	assert.NoError(t, err)
 
 }
