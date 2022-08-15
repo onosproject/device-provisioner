@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/atomix/go-client v0.7.2
 	github.com/onosproject/onos-api/go v0.9.31
-	github.com/onosproject/onos-lib-go v0.8.17
+	github.com/onosproject/onos-lib-go v0.9.0
 	github.com/p4lang/p4runtime v1.4.0-rc.5
 	github.com/rogpeppe/go-internal v1.8.1
 	github.com/spf13/cobra v1.5.0
@@ -17,7 +17,6 @@ require (
 	github.com/Shopify/sarama v1.31.1 // indirect
 	github.com/VictoriaMetrics/metrics v1.6.2 // indirect
 	github.com/armon/go-metrics v0.3.10 // indirect
-	github.com/atomix/atomix-go-framework v0.10.0 // indirect
 	github.com/atomix/multi-raft-storage/api v0.3.6 // indirect
 	github.com/atomix/multi-raft-storage/driver v0.3.5 // indirect
 	github.com/atomix/multi-raft-storage/node v0.3.5 // indirect
@@ -53,7 +52,7 @@ require (
 	github.com/hashicorp/go-uuid v1.0.2 // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
-	github.com/hashicorp/memberlist v0.2.2 // indirect
+	github.com/hashicorp/memberlist v0.3.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jcmturner/aescts/v2 v2.0.0 // indirect
 	github.com/jcmturner/dnsutils/v2 v2.0.0 // indirect
@@ -67,7 +66,7 @@ require (
 	github.com/lni/dragonboat/v3 v3.3.5 // indirect
 	github.com/lni/goutils v1.3.0 // indirect
 	github.com/magiconair/properties v1.8.6 // indirect
-	github.com/miekg/dns v1.1.26 // indirect
+	github.com/miekg/dns v1.1.41 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/pelletier/go-toml v1.9.4 // indirect

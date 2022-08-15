@@ -21,7 +21,7 @@ var log = logging.GetLogger()
 
 // Store P4 pipeline pipelineconfig store interface
 type Store interface {
-	// Get gets the pipelineconfig intended for a given target ID
+	// Get gets the pipeline config intended for a given target ID
 	Get(ctx context.Context, id p4rtapi.PipelineConfigID) (*p4rtapi.PipelineConfig, error)
 
 	// Create creates a p4 pipeline pipeline config
@@ -39,6 +39,7 @@ type Store interface {
 	// UpdateStatus updates a pipeline config status
 	UpdateStatus(ctx context.Context, pipelineConfig *p4rtapi.PipelineConfig) error
 
+	// Close the data store
 	Close(ctx context.Context) error
 }
 
@@ -132,7 +133,7 @@ func (s *configurationStore) Create(ctx context.Context, pipelineConfig *p4rtapi
 	pipelineConfig.Created = time.Now()
 	pipelineConfig.Updated = time.Now()
 	// Create the entry in the underlying map primitive.
-	entry, err := s.pipelineConfigs.Put(ctx, pipelineConfig.ID, pipelineConfig)
+	entry, err := s.pipelineConfigs.Insert(ctx, pipelineConfig.ID, pipelineConfig)
 	if err != nil {
 		return errors.FromAtomix(err)
 	}
@@ -146,33 +147,77 @@ func (s *configurationStore) Create(ctx context.Context, pipelineConfig *p4rtapi
 
 func (s *configurationStore) Update(ctx context.Context, pipelineConfig *p4rtapi.PipelineConfig) error {
 	if pipelineConfig.ID == "" {
-		return errors.NewInvalid("no pipelineConfig ID specified")
+		return errors.NewInvalid("no pipeline Config ID specified")
 	}
 	if pipelineConfig.TargetID == "" {
 		return errors.NewInvalid("no target ID specified")
 	}
 	if pipelineConfig.Revision == 0 {
-		return errors.NewInvalid("pipelineConfig must contain a revision on update")
+		return errors.NewInvalid("pipeline Config must contain a revision on update")
 	}
 	if pipelineConfig.Version == 0 {
-		return errors.NewInvalid("pipelineconfig must contain a version on update")
+		return errors.NewInvalid("pipeline config must contain a version on update")
 	}
-	pipelineConfig.Revision++
-	pipelineConfig.Updated = time.Now()
+
+	pipelineConfigEntry, err := s.Get(ctx, pipelineConfig.ID)
+	if err != nil {
+		return errors.FromAtomix(err)
+	}
+	pipelineConfigEntry.Revision++
+	pipelineConfigEntry.Updated = time.Now()
+	pipelineConfigEntry = pipelineConfig
 
 	// Update the entry in the underlying map primitive using the pipelineconfig version
 	// as an optimistic lock.
-	entry, err := s.pipelineConfigs.Put(ctx, pipelineConfig.ID, pipelineConfig)
+	entry, err := s.pipelineConfigs.Update(ctx, pipelineConfig.ID, pipelineConfigEntry)
 	if err != nil {
 		return errors.FromAtomix(err)
 	}
 
-	// Decode the pipelineconfig from the returned entry bytes.
-	if err := decodePipelineConfiguration(entry, pipelineConfig); err != nil {
+	// Decode the pipeline config from the returned entry bytes.
+	if err := decodePipelineConfiguration(entry, pipelineConfigEntry); err != nil {
 		return errors.NewInvalid("pipeline config decoding failed: %v", err)
 	}
 
 	return nil
+}
+
+func (s *configurationStore) UpdateStatus(ctx context.Context, pipelineConfig *p4rtapi.PipelineConfig) error {
+	if pipelineConfig.ID == "" {
+		return errors.NewInvalid("no pipeline pipeline config ID specified")
+	}
+	if pipelineConfig.TargetID == "" {
+		return errors.NewInvalid("no target ID specified")
+	}
+	if pipelineConfig.Revision == 0 {
+		return errors.NewInvalid("pipeline pipeline config must contain a revision on update")
+	}
+	if pipelineConfig.Version == 0 {
+		return errors.NewInvalid("pipeline pipeline config must contain a version on update")
+	}
+
+	pipelineConfigEntry, err := s.Get(ctx, pipelineConfig.ID)
+	if err != nil {
+		return errors.FromAtomix(err)
+	}
+
+	pipelineConfigEntry.Updated = time.Now()
+	pipelineConfigEntry = pipelineConfig
+
+	// Update the entry in the underlying map primitive using the pipelineconfig version
+	// as an optimistic lock.
+	entry, err := s.pipelineConfigs.Update(ctx, pipelineConfig.ID, pipelineConfigEntry)
+	if err != nil {
+		return errors.FromAtomix(err)
+	}
+
+	// Decode the pipeline config from the returned entry bytes.
+	if err := decodePipelineConfiguration(entry, pipelineConfigEntry); err != nil {
+		return errors.NewInvalid("pipeline config decoding failed: %v", err)
+	}
+
+	return nil
+
 }
 
 func (s *configurationStore) List(ctx context.Context) ([]*p4rtapi.PipelineConfig, error) {
@@ -207,6 +252,7 @@ func (s *configurationStore) Watch(ctx context.Context, ch chan<- *p4rtapi.Pipel
 			entry, err := entryStream.Next()
 			if err == io.EOF {
 				log.Warn("Entry stream is closed")
+				close(ch)
 				break
 			}
 			ch <- entry.Value
@@ -215,11 +261,6 @@ func (s *configurationStore) Watch(ctx context.Context, ch chan<- *p4rtapi.Pipel
 
 	return nil
 
-}
-
-func (s *configurationStore) UpdateStatus(ctx context.Context, pipelineConfig *p4rtapi.PipelineConfig) error {
-	//TODO implement me
-	panic("implement me")
 }
 
 func (s *configurationStore) Close(ctx context.Context) error {
