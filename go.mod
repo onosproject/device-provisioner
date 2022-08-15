@@ -1,6 +1,6 @@
 module github.com/onosproject/device-provisioner
 
-go 1.18
+go 1.19
 
 require (
 	github.com/atomix/go-client v0.7.2

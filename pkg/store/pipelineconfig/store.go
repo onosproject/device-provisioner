@@ -82,7 +82,7 @@ type configurationStore struct {
 	pipelineConfigs atomicmap.Map[p4rtapi.PipelineConfigID, *p4rtapi.PipelineConfig]
 }
 
-// NeAtomixStore creates a new Atomix store for device pipeline configurations
+// NewAtomixStore creates a new Atomix store for device pipeline configurations
 func NewAtomixStore(client primitive.Client) (Store, error) {
 	pipelineConfigsAtomicMap, err := atomixclient.AtomicMap[p4rtapi.PipelineConfigID, *p4rtapi.PipelineConfig](client)("device-provisioner-pipeline-configurations").
 		Codec(generic.GoGoProto[*p4rtapi.PipelineConfig](&p4rtapi.PipelineConfig{})).
