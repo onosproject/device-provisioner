@@ -24,9 +24,6 @@ func TestNewAtomixStore(t *testing.T) {
 	client1 := test.NewClient()
 	defer client1.Cleanup()
 
-	/*client2 := test.NewClient()
-	defer client2.Cleanup()*/
-
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
 	defer cancel()
 
@@ -34,17 +31,17 @@ func TestNewAtomixStore(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, store1)
 
-	/*store2, err := NewAtomixStore(client2)
+	store2, err := NewAtomixStore(client1)
 	assert.NoError(t, err)
-	assert.NotNil(t, store2)*/
+	assert.NotNil(t, store2)
 
 	ch1 := make(chan *p4rtapi.PipelineConfig)
 	err = store1.Watch(ctx, ch1)
 	assert.NoError(t, err)
 
-	/*ch2 := make(chan *p4rtapi.PipelineConfig)
+	ch2 := make(chan *p4rtapi.PipelineConfig)
 	err = store2.Watch(ctx, ch2)
-	assert.NoError(t, err)*/
+	assert.NoError(t, err)
 
 	deviceConfig1 := &p4rtapi.PipelineConfig{
 		ID:       pipelineConfigID1,
@@ -65,18 +62,24 @@ func TestNewAtomixStore(t *testing.T) {
 	assert.NoError(t, err)
 	event := <-ch1
 	assert.Equal(t, targetID1, event.TargetID)
+	event = <-ch2
+	assert.Equal(t, targetID1, event.TargetID)
 
-	pipelineConfig1, err := store1.Get(ctx, pipelineConfigID1)
+	pipelineConfig1, err := store2.Get(ctx, pipelineConfigID1)
 	assert.NoError(t, err)
 	assert.Equal(t, deviceConfig1.ID, pipelineConfig1.ID)
 	assert.Equal(t, deviceConfig1.TargetID, pipelineConfig1.TargetID)
 	assert.Equal(t, deviceConfig1.Cookie.Cookie, pipelineConfig1.Cookie.Cookie)
-
 	assert.Equal(t, p4rtapi.PipelineConfigStatus_PENDING, pipelineConfig1.Status.State)
+
 	pipelineConfig1.Status.State = p4rtapi.PipelineConfigStatus_COMPLETE
 	err = store1.UpdateStatus(ctx, pipelineConfig1)
 	assert.NoError(t, err)
 	event = <-ch1
+	assert.Equal(t, targetID1, event.TargetID)
+	assert.Equal(t, p4rtapi.PipelineConfigStatus_COMPLETE, event.Status.State)
+
+	event = <-ch2
 	assert.Equal(t, targetID1, event.TargetID)
 	assert.Equal(t, p4rtapi.PipelineConfigStatus_COMPLETE, event.Status.State)
 
@@ -97,12 +100,37 @@ func TestNewAtomixStore(t *testing.T) {
 
 	err = store1.Create(ctx, deviceConfig2)
 	assert.NoError(t, err)
-
 	event = <-ch1
 	assert.Equal(t, targetID2, event.TargetID)
+	event = <-ch2
+	assert.Equal(t, targetID2, event.TargetID)
 
-	pipelineConfigList, err := store1.List(ctx)
+	pipelineConfig2, err := store1.Get(ctx, pipelineConfigID2)
+	assert.NoError(t, err)
+	assert.Equal(t, deviceConfig2.ID, pipelineConfig2.ID)
+	assert.Equal(t, deviceConfig2.TargetID, pipelineConfig2.TargetID)
+	assert.Equal(t, deviceConfig2.Cookie.Cookie, pipelineConfig2.Cookie.Cookie)
+
+	pipelineConfig2.Status.State = p4rtapi.PipelineConfigStatus_FAILED
+	err = store2.UpdateStatus(ctx, pipelineConfig2)
+	assert.NoError(t, err)
+	event = <-ch1
+	assert.Equal(t, targetID2, event.TargetID)
+	assert.Equal(t, p4rtapi.PipelineConfigStatus_FAILED, event.Status.State)
+
+	event = <-ch2
+	assert.Equal(t, targetID2, event.TargetID)
+	assert.Equal(t, p4rtapi.PipelineConfigStatus_FAILED, event.Status.State)
+
+	pipelineConfigList, err := store2.List(ctx)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(pipelineConfigList))
+
+	err = store2.Remove(ctx, pipelineConfigID1)
+	assert.NoError(t, err)
+
+	pipelineConfigList, err = store1.List(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(pipelineConfigList))
 
 }

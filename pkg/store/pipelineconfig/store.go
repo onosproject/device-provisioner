@@ -39,6 +39,9 @@ type Store interface {
 	// UpdateStatus updates a pipeline config status
 	UpdateStatus(ctx context.Context, pipelineConfig *p4rtapi.PipelineConfig) error
 
+	// Remove removes a pipeline config entry
+	Remove(ctx context.Context, id p4rtapi.PipelineConfigID) error
+
 	// Close the data store
 	Close(ctx context.Context) error
 }
@@ -142,6 +145,19 @@ func (s *configurationStore) Create(ctx context.Context, pipelineConfig *p4rtapi
 	if err := decodePipelineConfiguration(entry, pipelineConfig); err != nil {
 		return errors.NewInvalid("pipelineConfig decoding failed: %v", err)
 	}
+	return nil
+}
+
+func (s *configurationStore) Remove(ctx context.Context, id p4rtapi.PipelineConfigID) error {
+	if id == "" {
+		return errors.NewInvalid("no pipeline Config ID specified")
+	}
+
+	_, err := s.pipelineConfigs.Remove(ctx, id)
+	if err != nil {
+		return errors.FromAtomix(err)
+	}
+
 	return nil
 }
 
