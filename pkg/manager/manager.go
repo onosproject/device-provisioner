@@ -5,7 +5,9 @@
 package manager
 
 import (
+	"github.com/atomix/go-client/pkg/client"
 	"github.com/onosproject/device-provisioner/pkg/pluginregistry"
+	"github.com/onosproject/device-provisioner/pkg/store/pipelineconfig"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
 )
@@ -49,14 +51,18 @@ func (m *Manager) Run() {
 	log.Info("Starting application Manager")
 
 	if err := m.start(); err != nil {
-		log.Warn("Unable to run Manager", "error", err)
+		log.Fatal("Unable to run Manager", "error", err)
 	}
 }
 
 func (m *Manager) start() error {
+	_, err := pipelineconfig.NewAtomixStore(client.NewClient())
+	if err != nil {
+		return err
+	}
 
 	// Starts NB server
-	err := m.startNorthboundServer()
+	err = m.startNorthboundServer()
 	if err != nil {
 		return err
 	}

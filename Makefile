@@ -27,6 +27,8 @@ mod-lint: mod-update # @HELP ensure that the required dependencies are in place
 	bash -c "diff -u <(echo -n) <(git diff go.sum)"
 
 
+linters:
+	golangci-lint run --timeout 15m || curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b `go env GOPATH`/bin v1.48.0
 
 build: # @HELP build the Go binaries and run all validations (default)
 build: mod-update
