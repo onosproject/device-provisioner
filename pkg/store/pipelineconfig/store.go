@@ -84,7 +84,7 @@ func (o watchIDOption) apply(options *watchOptions) {
 	options.configurationID = o.id
 }
 
-// WithPipelineConfigID returns a Watch option that watches for configurations based on a given pipelineconfig pipelineconfig ID
+// WithPipelineConfigID returns a Watch option that watches for configurations based on a given pipeline config ID
 func WithPipelineConfigID(id p4rtapi.PipelineConfigID) WatchOption {
 	return watchIDOption{id: id}
 }
@@ -93,7 +93,7 @@ type configurationStore struct {
 	pipelineConfigs atomicmap.Map[p4rtapi.PipelineConfigID, *p4rtapi.PipelineConfig]
 }
 
-// NewAtomixStore creates a new Atomix store for device pipelineconfig configurations
+// NewAtomixStore creates a new Atomix store for device pipeline config configurations
 func NewAtomixStore(client primitive.Client) (Store, error) {
 	pipelineConfigsAtomicMap, err := atomixclient.AtomicMap[p4rtapi.PipelineConfigID, *p4rtapi.PipelineConfig](client)("device-provisioner-pipelineconfig-configurations").
 		Codec(generic.GoGoProto[*p4rtapi.PipelineConfig](&p4rtapi.PipelineConfig{})).
@@ -121,7 +121,7 @@ func (s *configurationStore) Get(ctx context.Context, id p4rtapi.PipelineConfigI
 	// Decode and return the Configuration.
 	configuration := entry.Value
 	if err := decodePipelineConfiguration(entry, configuration); err != nil {
-		return nil, errors.NewInvalid("pipelineconfig config decoding failed: %v", err)
+		return nil, errors.NewInvalid("pipeline config  decoding failed: %v", err)
 	}
 	return entry.Value, nil
 }
@@ -134,7 +134,7 @@ func (s *configurationStore) Create(ctx context.Context, pipelineConfig *p4rtapi
 		return errors.NewInvalid("no target ID specified")
 	}
 	if pipelineConfig.Revision != 0 {
-		return errors.NewInvalid("cannot create pipelineconfig pipelineconfig config with revision")
+		return errors.NewInvalid("cannot create pipeline config config with revision")
 	}
 	if pipelineConfig.Version != 0 {
 		return errors.NewInvalid("cannot create pipelineconfig pipelineconfig config with version")
@@ -150,7 +150,7 @@ func (s *configurationStore) Create(ctx context.Context, pipelineConfig *p4rtapi
 
 	// Decode the pipelineconfig config from the returned entry.
 	if err := decodePipelineConfiguration(entry, pipelineConfig); err != nil {
-		return errors.NewInvalid("pipelineConfig decoding failed: %v", err)
+		return errors.NewInvalid("pipeline config decoding failed: %v", err)
 	}
 	return nil
 }
@@ -199,7 +199,7 @@ func (s *configurationStore) Update(ctx context.Context, pipelineConfig *p4rtapi
 
 	// Decode the pipelineconfig config from the returned entry bytes.
 	if err := decodePipelineConfiguration(entry, pipelineConfigEntry); err != nil {
-		return errors.NewInvalid("pipelineconfig config decoding failed: %v", err)
+		return errors.NewInvalid("pipeline config decoding failed: %v", err)
 	}
 
 	return nil
@@ -213,10 +213,10 @@ func (s *configurationStore) UpdateStatus(ctx context.Context, pipelineConfig *p
 		return errors.NewInvalid("no target ID specified")
 	}
 	if pipelineConfig.Revision == 0 {
-		return errors.NewInvalid("pipelineconfig pipelineconfig config must contain a revision on update")
+		return errors.NewInvalid("pipeline config config must contain a revision on update")
 	}
 	if pipelineConfig.Version == 0 {
-		return errors.NewInvalid("pipelineconfig pipelineconfig config must contain a version on update")
+		return errors.NewInvalid("pipeline config config must contain a version on update")
 	}
 
 	pipelineConfigEntry, err := s.Get(ctx, pipelineConfig.ID)
@@ -234,9 +234,9 @@ func (s *configurationStore) UpdateStatus(ctx context.Context, pipelineConfig *p
 		return errors.FromAtomix(err)
 	}
 
-	// Decode the pipelineconfig config from the returned entry bytes.
+	// Decode the pipeline config from the returned entry bytes.
 	if err := decodePipelineConfiguration(entry, pipelineConfigEntry); err != nil {
-		return errors.NewInvalid("pipelineconfig config decoding failed: %v", err)
+		return errors.NewInvalid("pipeline config config decoding failed: %v", err)
 	}
 
 	return nil
@@ -254,12 +254,15 @@ func (s *configurationStore) List(ctx context.Context) ([]*p4rtapi.PipelineConfi
 	for {
 		entry, err := entryStream.Next()
 		if err == io.EOF {
-			log.Warn("Entry stream is closed")
+			log.Info("Entry stream is closed")
 			break
+		} else if err != nil {
+			log.Warn(err)
+			return nil, err
+		} else {
+			entries = append(entries, entry.Value)
 		}
-		entries = append(entries, entry.Value)
 	}
-
 	return entries, nil
 
 }
@@ -274,11 +277,14 @@ func (s *configurationStore) Watch(ctx context.Context, ch chan<- *p4rtapi.Pipel
 		for {
 			entry, err := entryStream.Next()
 			if err == io.EOF {
-				log.Warn("Entry stream is closed")
-				close(ch)
-				break
+				log.Info("Entry stream is closed")
+				return
+			} else if err != nil {
+				log.Warn(err)
+				return
+			} else {
+				ch <- entry.Value
 			}
-			ch <- entry.Value
 		}
 	}()
 

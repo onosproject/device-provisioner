@@ -6,7 +6,6 @@ package manager
 
 import (
 	"github.com/atomix/go-client/pkg/client"
-	"github.com/onosproject/device-provisioner/pkg/controller/configuration"
 	"github.com/onosproject/device-provisioner/pkg/controller/pipeline"
 	"github.com/onosproject/device-provisioner/pkg/pluginregistry"
 	"github.com/onosproject/device-provisioner/pkg/store/pipelineconfig"
@@ -84,12 +83,7 @@ func (m *Manager) start() error {
 		return err
 	}
 
-	err = m.startConfigurationController(topoStore, pipelineConfigStore, m.p4PluginRegistry)
-	if err != nil {
-		return err
-	}
-
-	err = m.startPipelineController(topoStore, pipelineConfigStore, adminController)
+	err = m.startPipelineController(topoStore, pipelineConfigStore, adminController, m.p4PluginRegistry)
 	if err != nil {
 		return err
 	}
@@ -127,13 +121,7 @@ func (m *Manager) startNorthboundServer() error {
 	return <-doneCh
 }
 
-func (m *Manager) startConfigurationController(topoStore topo.Store, pipelineConfigStore pipelineconfig.Store, registry pluginregistry.P4PluginRegistry) error {
-	configurationController := configuration.NewController(topoStore, pipelineConfigStore, registry)
-	return configurationController.Start()
-
-}
-
-func (m *Manager) startPipelineController(topoStore topo.Store, pipelineConfigStore pipelineconfig.Store, adminController *admin.Controller) error {
-	pipelineController := pipeline.NewController(topoStore, pipelineConfigStore, adminController)
+func (m *Manager) startPipelineController(topoStore topo.Store, pipelineConfigStore pipelineconfig.Store, adminController *admin.Controller, p4pluginRegistry pluginregistry.P4PluginRegistry) error {
+	pipelineController := pipeline.NewController(topoStore, pipelineConfigStore, adminController, p4pluginRegistry)
 	return pipelineController.Start()
 }
