@@ -53,6 +53,7 @@ func (w *Watcher) Start(ch chan<- controller.ID) error {
 func (w *Watcher) Stop() {
 	w.mu.Lock()
 	if w.cancel != nil {
+		log.Info("cancel is called")
 		w.cancel()
 		w.cancel = nil
 	}

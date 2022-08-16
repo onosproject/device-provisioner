@@ -204,7 +204,7 @@ func (r *Reconciler) Reconcile(id controller.ID) (controller.Result, error) {
 }
 func (r *Reconciler) reconcileVerifyAndCommitAction(ctx context.Context, pipelineConfig *p4rtapi.PipelineConfig) (controller.Result, error) {
 	targetID := topoapi.ID(pipelineConfig.TargetID)
-	target, err := r.topo.Get(ctx, targetID)
+	targetClient, target, err := r.adminController.Client(ctx, targetID)
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			log.Errorw("Failed Reconciling device pipeline config", "pipelineConfig ID", pipelineConfig.ID, "targetID", targetID, "error", err)
@@ -216,9 +216,9 @@ func (r *Reconciler) reconcileVerifyAndCommitAction(ctx context.Context, pipelin
 		if err := r.updateConfigurationStatus(ctx, pipelineConfig); err != nil {
 			return controller.Result{}, err
 		}
-
 		return controller.Result{}, nil
 	}
+
 	p4rtServerInfo := &topoapi.P4RTServerInfo{}
 	err = target.GetAspect(p4rtServerInfo)
 	if err != nil {
@@ -255,12 +255,6 @@ func (r *Reconciler) reconcileVerifyAndCommitAction(ctx context.Context, pipelin
 	if len(p4rtServerInfo.Pipelines) == 0 {
 		log.Errorw("No pipeline information found for target", "pipelineConfig ID", pipelineConfig.ID, "targetID", pipelineConfig.TargetID, "error", err)
 		return controller.Result{}, errors.NewNotFound("Device pipeline config info is not found", targetID)
-	}
-
-	targetClient, err := r.adminController.Client(ctx, target)
-	if err != nil {
-		log.Warn(err)
-		return controller.Result{}, nil
 	}
 
 	p4InfoBytes := pipelineConfig.Spec.P4Info
