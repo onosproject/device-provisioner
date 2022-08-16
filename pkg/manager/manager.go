@@ -6,10 +6,15 @@ package manager
 
 import (
 	"github.com/atomix/go-client/pkg/client"
+	"github.com/onosproject/device-provisioner/pkg/controller/configuration"
+	"github.com/onosproject/device-provisioner/pkg/controller/pipeline"
 	"github.com/onosproject/device-provisioner/pkg/pluginregistry"
 	"github.com/onosproject/device-provisioner/pkg/store/pipelineconfig"
+	"github.com/onosproject/device-provisioner/pkg/store/topo"
+	"github.com/onosproject/onos-lib-go/pkg/certs"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
+	"github.com/onosproject/onos-p4-sdk/pkg/p4rt/admin"
 )
 
 var log = logging.GetLogger()
@@ -56,11 +61,38 @@ func (m *Manager) Run() {
 }
 
 func (m *Manager) start() error {
-	_, err := pipelineconfig.NewAtomixStore(client.NewClient())
+	opts, err := certs.HandleCertPaths(m.Config.CAPath, m.Config.KeyPath, m.Config.CertPath, true)
 	if err != nil {
 		return err
 	}
 
+	adminController := admin.StartController(admin.Config{
+		CAPath:      m.Config.CAPath,
+		CertPath:    m.Config.CertPath,
+		KeyPath:     m.Config.KeyPath,
+		TopoAddress: m.Config.TopoAddress,
+	})
+
+	// Create new topo store
+	topoStore, err := topo.NewStore(m.Config.TopoAddress, opts...)
+	if err != nil {
+		return err
+	}
+
+	pipelineConfigStore, err := pipelineconfig.NewAtomixStore(client.NewClient())
+	if err != nil {
+		return err
+	}
+
+	err = m.startConfigurationController(topoStore, pipelineConfigStore, m.p4PluginRegistry)
+	if err != nil {
+		return err
+	}
+
+	err = m.startPipelineController(topoStore, pipelineConfigStore, adminController)
+	if err != nil {
+		return err
+	}
 	// Starts NB server
 	err = m.startNorthboundServer()
 	if err != nil {
@@ -93,4 +125,15 @@ func (m *Manager) startNorthboundServer() error {
 		}
 	}()
 	return <-doneCh
+}
+
+func (m *Manager) startConfigurationController(topoStore topo.Store, pipelineConfigStore pipelineconfig.Store, registry pluginregistry.P4PluginRegistry) error {
+	configurationController := configuration.NewController(topoStore, pipelineConfigStore, registry)
+	return configurationController.Start()
+
+}
+
+func (m *Manager) startPipelineController(topoStore topo.Store, pipelineConfigStore pipelineconfig.Store, adminController *admin.Controller) error {
+	pipelineController := pipeline.NewController(topoStore, pipelineConfigStore, adminController)
+	return pipelineController.Start()
 }

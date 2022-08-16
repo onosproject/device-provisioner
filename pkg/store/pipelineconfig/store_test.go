@@ -14,9 +14,9 @@ import (
 )
 
 const (
-	pipelineConfigID1 = p4rtapi.PipelineConfigID("pipeline-config-switch1")
+	pipelineConfigID1 = p4rtapi.PipelineConfigID("pipelineconfig-config-switch1")
 	targetID1         = p4rtapi.TargetID("switch1")
-	pipelineConfigID2 = p4rtapi.PipelineConfigID("pipeline-config-switch2")
+	pipelineConfigID2 = p4rtapi.PipelineConfigID("pipelineconfig-config-switch2")
 	targetID2         = p4rtapi.TargetID("switch2")
 )
 

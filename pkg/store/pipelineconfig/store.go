@@ -6,6 +6,7 @@ package pipelineconfig
 
 import (
 	"context"
+	"fmt"
 	atomixclient "github.com/atomix/go-client/pkg/client"
 	"github.com/atomix/go-client/pkg/generic"
 	"github.com/atomix/go-client/pkg/primitive"
@@ -19,27 +20,33 @@ import (
 
 var log = logging.GetLogger()
 
-// Store P4 pipeline pipelineconfig store interface
+// NewPipelineConfigID creates a new pipeline config ID
+func NewPipelineConfigID(targetID p4rtapi.TargetID, pipelineName string, pipelineVersion string, pipelineArch string) p4rtapi.PipelineConfigID {
+	return p4rtapi.PipelineConfigID(fmt.Sprintf("%s-%s-%s-%s", targetID, pipelineName, pipelineVersion, pipelineArch))
+
+}
+
+// Store P4 pipelineconfig pipelineconfig store interface
 type Store interface {
-	// Get gets the pipeline config intended for a given target ID
+	// Get gets the pipelineconfig config intended for a given target ID
 	Get(ctx context.Context, id p4rtapi.PipelineConfigID) (*p4rtapi.PipelineConfig, error)
 
-	// Create creates a p4 pipeline pipeline config
+	// Create creates a p4 pipelineconfig pipelineconfig config
 	Create(ctx context.Context, pipelineConfig *p4rtapi.PipelineConfig) error
 
-	// Update updates a p4 pipeline pipeline config
+	// Update updates a p4 pipelineconfig pipelineconfig config
 	Update(ctx context.Context, pipelineConfig *p4rtapi.PipelineConfig) error
 
-	// List lists all the pipeline config
+	// List lists all the pipelineconfig config
 	List(ctx context.Context) ([]*p4rtapi.PipelineConfig, error)
 
-	// Watch watches pipeline config changes
+	// Watch watches pipelineconfig config changes
 	Watch(ctx context.Context, ch chan<- *p4rtapi.PipelineConfig, opts ...WatchOption) error
 
-	// UpdateStatus updates a pipeline config status
+	// UpdateStatus updates a pipelineconfig config status
 	UpdateStatus(ctx context.Context, pipelineConfig *p4rtapi.PipelineConfig) error
 
-	// Remove removes a pipeline config entry
+	// Remove removes a pipelineconfig config entry
 	Remove(ctx context.Context, id p4rtapi.PipelineConfigID) error
 
 	// Close the data store
@@ -77,7 +84,7 @@ func (o watchIDOption) apply(options *watchOptions) {
 	options.configurationID = o.id
 }
 
-// WithPipelineConfigID returns a Watch option that watches for configurations based on a given pipeline pipelineconfig ID
+// WithPipelineConfigID returns a Watch option that watches for configurations based on a given pipelineconfig pipelineconfig ID
 func WithPipelineConfigID(id p4rtapi.PipelineConfigID) WatchOption {
 	return watchIDOption{id: id}
 }
@@ -86,9 +93,9 @@ type configurationStore struct {
 	pipelineConfigs atomicmap.Map[p4rtapi.PipelineConfigID, *p4rtapi.PipelineConfig]
 }
 
-// NewAtomixStore creates a new Atomix store for device pipeline configurations
+// NewAtomixStore creates a new Atomix store for device pipelineconfig configurations
 func NewAtomixStore(client primitive.Client) (Store, error) {
-	pipelineConfigsAtomicMap, err := atomixclient.AtomicMap[p4rtapi.PipelineConfigID, *p4rtapi.PipelineConfig](client)("device-provisioner-pipeline-configurations").
+	pipelineConfigsAtomicMap, err := atomixclient.AtomicMap[p4rtapi.PipelineConfigID, *p4rtapi.PipelineConfig](client)("device-provisioner-pipelineconfig-configurations").
 		Codec(generic.GoGoProto[*p4rtapi.PipelineConfig](&p4rtapi.PipelineConfig{})).
 		Get(context.Background())
 
@@ -105,7 +112,7 @@ func NewAtomixStore(client primitive.Client) (Store, error) {
 }
 
 func (s *configurationStore) Get(ctx context.Context, id p4rtapi.PipelineConfigID) (*p4rtapi.PipelineConfig, error) {
-	// If the pipeline config is not already in the cache, get it from the underlying primitive.
+	// If the pipelineconfig config is not already in the cache, get it from the underlying primitive.
 	entry, err := s.pipelineConfigs.Get(ctx, id)
 	if err != nil {
 		return nil, errors.FromAtomix(err)
@@ -114,23 +121,23 @@ func (s *configurationStore) Get(ctx context.Context, id p4rtapi.PipelineConfigI
 	// Decode and return the Configuration.
 	configuration := entry.Value
 	if err := decodePipelineConfiguration(entry, configuration); err != nil {
-		return nil, errors.NewInvalid("pipeline config decoding failed: %v", err)
+		return nil, errors.NewInvalid("pipelineconfig config decoding failed: %v", err)
 	}
 	return entry.Value, nil
 }
 
 func (s *configurationStore) Create(ctx context.Context, pipelineConfig *p4rtapi.PipelineConfig) error {
 	if pipelineConfig.ID == "" {
-		return errors.NewInvalid("no pipeline pipelineconfig ID specified")
+		return errors.NewInvalid("no pipelineconfig pipelineconfig ID specified")
 	}
 	if pipelineConfig.TargetID == "" {
 		return errors.NewInvalid("no target ID specified")
 	}
 	if pipelineConfig.Revision != 0 {
-		return errors.NewInvalid("cannot create pipeline pipeline config with revision")
+		return errors.NewInvalid("cannot create pipelineconfig pipelineconfig config with revision")
 	}
 	if pipelineConfig.Version != 0 {
-		return errors.NewInvalid("cannot create pipeline pipeline config with version")
+		return errors.NewInvalid("cannot create pipelineconfig pipelineconfig config with version")
 	}
 	pipelineConfig.Revision = 1
 	pipelineConfig.Created = time.Now()
@@ -141,7 +148,7 @@ func (s *configurationStore) Create(ctx context.Context, pipelineConfig *p4rtapi
 		return errors.FromAtomix(err)
 	}
 
-	// Decode the pipeline config from the returned entry.
+	// Decode the pipelineconfig config from the returned entry.
 	if err := decodePipelineConfiguration(entry, pipelineConfig); err != nil {
 		return errors.NewInvalid("pipelineConfig decoding failed: %v", err)
 	}
@@ -150,7 +157,7 @@ func (s *configurationStore) Create(ctx context.Context, pipelineConfig *p4rtapi
 
 func (s *configurationStore) Remove(ctx context.Context, id p4rtapi.PipelineConfigID) error {
 	if id == "" {
-		return errors.NewInvalid("no pipeline Config ID specified")
+		return errors.NewInvalid("no pipelineconfig Config ID specified")
 	}
 
 	_, err := s.pipelineConfigs.Remove(ctx, id)
@@ -163,16 +170,16 @@ func (s *configurationStore) Remove(ctx context.Context, id p4rtapi.PipelineConf
 
 func (s *configurationStore) Update(ctx context.Context, pipelineConfig *p4rtapi.PipelineConfig) error {
 	if pipelineConfig.ID == "" {
-		return errors.NewInvalid("no pipeline Config ID specified")
+		return errors.NewInvalid("no pipelineconfig Config ID specified")
 	}
 	if pipelineConfig.TargetID == "" {
 		return errors.NewInvalid("no target ID specified")
 	}
 	if pipelineConfig.Revision == 0 {
-		return errors.NewInvalid("pipeline Config must contain a revision on update")
+		return errors.NewInvalid("pipelineconfig Config must contain a revision on update")
 	}
 	if pipelineConfig.Version == 0 {
-		return errors.NewInvalid("pipeline config must contain a version on update")
+		return errors.NewInvalid("pipelineconfig config must contain a version on update")
 	}
 
 	pipelineConfigEntry, err := s.Get(ctx, pipelineConfig.ID)
@@ -190,9 +197,9 @@ func (s *configurationStore) Update(ctx context.Context, pipelineConfig *p4rtapi
 		return errors.FromAtomix(err)
 	}
 
-	// Decode the pipeline config from the returned entry bytes.
+	// Decode the pipelineconfig config from the returned entry bytes.
 	if err := decodePipelineConfiguration(entry, pipelineConfigEntry); err != nil {
-		return errors.NewInvalid("pipeline config decoding failed: %v", err)
+		return errors.NewInvalid("pipelineconfig config decoding failed: %v", err)
 	}
 
 	return nil
@@ -200,16 +207,16 @@ func (s *configurationStore) Update(ctx context.Context, pipelineConfig *p4rtapi
 
 func (s *configurationStore) UpdateStatus(ctx context.Context, pipelineConfig *p4rtapi.PipelineConfig) error {
 	if pipelineConfig.ID == "" {
-		return errors.NewInvalid("no pipeline pipeline config ID specified")
+		return errors.NewInvalid("no pipelineconfig pipelineconfig config ID specified")
 	}
 	if pipelineConfig.TargetID == "" {
 		return errors.NewInvalid("no target ID specified")
 	}
 	if pipelineConfig.Revision == 0 {
-		return errors.NewInvalid("pipeline pipeline config must contain a revision on update")
+		return errors.NewInvalid("pipelineconfig pipelineconfig config must contain a revision on update")
 	}
 	if pipelineConfig.Version == 0 {
-		return errors.NewInvalid("pipeline pipeline config must contain a version on update")
+		return errors.NewInvalid("pipelineconfig pipelineconfig config must contain a version on update")
 	}
 
 	pipelineConfigEntry, err := s.Get(ctx, pipelineConfig.ID)
@@ -227,9 +234,9 @@ func (s *configurationStore) UpdateStatus(ctx context.Context, pipelineConfig *p
 		return errors.FromAtomix(err)
 	}
 
-	// Decode the pipeline config from the returned entry bytes.
+	// Decode the pipelineconfig config from the returned entry bytes.
 	if err := decodePipelineConfiguration(entry, pipelineConfigEntry); err != nil {
-		return errors.NewInvalid("pipeline config decoding failed: %v", err)
+		return errors.NewInvalid("pipelineconfig config decoding failed: %v", err)
 	}
 
 	return nil
