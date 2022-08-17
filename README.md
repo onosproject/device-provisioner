@@ -212,8 +212,8 @@ Here is the sample output in the logs
 
 ```bash
 kubectl logs -n micro-onos deployments/device-provisioner device-provisioner --follow | grep "Device pipelineConfig is completed successfully"
-2022-08-17T19:43:54.503Z	INFO	github.com/onosproject/device-provisioner/pkg/controller/pipeline	pipeline/controller.go:293	Device pipelineConfig is completed successfully	{"pipelineConfig ID": "p4rt:s2-middleblock-1.0.0-v1model", "targetID": "p4rt:s2"}
-2022-08-17T19:43:54.739Z	INFO	github.com/onosproject/device-provisioner/pkg/controller/pipeline	pipeline/controller.go:293	Device pipelineConfig is completed successfully	{"pipelineConfig ID": "p4rt:s1-middleblock-1.0.0-v1model", "targetID": "p4rt:s1"}
+2022-08-17T23:45:31.719Z	INFO	github.com/onosproject/device-provisioner/pkg/controller/pipeline	pipeline/controller.go:289	Device pipelineConfig is completed successfully	{"pipelineConfig ID": "p4rt:s1-middleblock-1.0.0-v1model", "targetID": "p4rt:s1", "Action": "VERIFY_AND_COMMIT"}
+2022-08-17T23:45:31.719Z	INFO	github.com/onosproject/device-provisioner/pkg/controller/pipeline	pipeline/controller.go:289	Device pipelineConfig is completed successfully	{"pipelineConfig ID": "p4rt:s2-middleblock-1.0.0-v1model", "targetID": "p4rt:s2", "Action": "VERIFY_AND_COMMIT"}
 ```
 
 
