@@ -10,23 +10,24 @@ SPDX-License-Identifier: Apache-2.0
 
 
 # Device-provisioner
-The main objective of this project is to implement an SDN application for provisioning of 
-device pipeline config using P4Runtime and gNMI automatically when the devices in a network are discovered/provisioned using 
+The main objective of this project is to provide an SDN application for provisioning of 
+device pipeline config using [P4Runtime][P4Runtime] and [gNMI][gNMI] automatically as the devices in a network get discovered/provisioned using 
 [onos-topo] subsystem. 
 
 
 ## Architecture
 The application uses [onos-p4-sdk][onos-p4-sdk], [Atomix][Atomix], and [onos-p4-plugins][onos-p4-plugins] to 
 implement a reconciliation loop controller that
-brings the actual state device pipeline config to a desired state for each device that is defined as a programmable entity 
-in [onos-topo][onos-topo]. The following figure show the interaction of the app with micro-onos subsystems. 
+brings the actual state device pipeline config to a desired state for each device where each device is defined as a programmable entity 
+in [onos-topo][onos-topo]. The following Figure shows the interactions of the app with micro-onos subsystems and 
+P4 programmable devices. 
 
 ![design](docs/images/arch.png)
 
 
 ### Device Pipeline Configuration Using P4Runtime API
-The application uses P4Runtime **SetForwardingPipelineConfig** RPC to set/update pipelines in a P4 programmable device. At very high level, the user specifies
-the pipelines and type of configuration action that are defined in P4Runtime API (e.g.  VERIFY, VERIFY_AND_COMMIT, RECONCILE_AND_COMMIT, etc)
+The application uses P4Runtime *SetForwardingPipelineConfig* RPC to set/update pipelines in a P4 programmable device. At very high level, the user specifies
+the pipelines and type of configuration action for each pipeline (e.g.  VERIFY, VERIFY_AND_COMMIT, RECONCILE_AND_COMMIT, etc)
 that should be provisioned for each device when the device entity is created in [onos-topo][onos-topo]. The pipeline config 
 reconciliation loop controller listens to topology changes and tries to reconcile the pipeline config and reach to the desired state
 based on the user request.
@@ -139,6 +140,7 @@ spec:
         - name: "middleblock"
           version: "1.0.0"
           architecture: "v1model"
+          configuration_action: "VERIFY_AND_COMMIT"
     onos.topo.TLSOptions:
       plain: true
       insecure: true
@@ -164,6 +166,7 @@ spec:
         - name: "middleblock"
           version: "1.0.0"
           architecture: "v1model"
+          configuration_action: "VERIFY_AND_COMMIT"
     onos.topo.TLSOptions:
       plain: true
       insecure: true
@@ -222,3 +225,4 @@ kubectl logs -n micro-onos deployments/device-provisioner device-provisioner --f
 [helm]: https://helm.sh/
 [stratum-simulator]: https://github.com/onosproject/onos-helm-charts/tree/master/stratum-simulator
 [stratum-image]: https://hub.docker.com/r/opennetworking/mn-stratum
+[gNMI]: https://github.com/openconfig/reference/blob/master/rpc/gnmi/gnmi-specification.md
