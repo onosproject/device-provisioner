@@ -55,7 +55,6 @@ ifdef TAG
 endif
 
 
-
 kind: # @HELP build Docker images and add them to the currently configured kind cluster
 kind: images kind-only
 

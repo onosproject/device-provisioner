@@ -3,20 +3,28 @@ module github.com/onosproject/device-provisioner
 go 1.19
 
 require (
+	github.com/atomix/atomix-go-client v0.6.2
 	github.com/atomix/go-client v0.7.2
-	github.com/onosproject/onos-api/go v0.9.31
+	github.com/onosproject/onos-api/go v0.9.34
 	github.com/onosproject/onos-lib-go v0.9.0
+	github.com/onosproject/onos-p4-sdk v0.1.9
+	github.com/onosproject/onos-topo v0.9.7
 	github.com/p4lang/p4runtime v1.4.0-rc.5
 	github.com/rogpeppe/go-internal v1.8.1
 	github.com/spf13/cobra v1.5.0
-	github.com/stretchr/testify v1.7.1
-	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b
+	github.com/stretchr/testify v1.8.0
+	google.golang.org/grpc v1.48.0
+	google.golang.org/protobuf v1.28.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
 	github.com/Shopify/sarama v1.31.1 // indirect
 	github.com/VictoriaMetrics/metrics v1.6.2 // indirect
 	github.com/armon/go-metrics v0.3.10 // indirect
+	github.com/atomix/atomix-api/go v0.4.9 // indirect
+	github.com/atomix/atomix-go-framework v0.10.1 // indirect
+	github.com/atomix/atomix-go-local v0.8.0 // indirect
 	github.com/atomix/multi-raft-storage/api v0.3.6 // indirect
 	github.com/atomix/multi-raft-storage/driver v0.3.5 // indirect
 	github.com/atomix/multi-raft-storage/node v0.3.5 // indirect
@@ -39,11 +47,12 @@ require (
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt v3.2.2+incompatible // indirect
+	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
-	github.com/google/btree v1.0.0 // indirect
-	github.com/google/uuid v1.1.2 // indirect
-	github.com/grpc-ecosystem/go-grpc-middleware v1.0.0 // indirect
+	github.com/google/btree v1.0.1 // indirect
+	github.com/google/uuid v1.3.0 // indirect
+	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
 	github.com/hashicorp/errwrap v1.0.0 // indirect
 	github.com/hashicorp/go-immutable-radix v1.3.1 // indirect
 	github.com/hashicorp/go-msgpack v0.5.3 // indirect
@@ -95,9 +104,7 @@ require (
 	golang.org/x/sys v0.0.0-20220503163025-988cb79eb6c6 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/genproto v0.0.0-20220407144326-9054f6ed7bac // indirect
-	google.golang.org/grpc v1.48.0 // indirect
-	google.golang.org/protobuf v1.28.0 // indirect
+	google.golang.org/genproto v0.0.0-20220803205849-8f55acc8769f // indirect
 	gopkg.in/ini.v1 v1.66.4 // indirect
 	gopkg.in/square/go-jose.v1 v1.1.2 // indirect
 	gopkg.in/square/go-jose.v2 v2.5.1 // indirect
