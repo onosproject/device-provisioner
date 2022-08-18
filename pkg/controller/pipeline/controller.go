@@ -138,23 +138,7 @@ func (r *Reconciler) createPipelineConfig(ctx context.Context, pipelineConfigID 
 			P4Info:         p4InfoBytes,
 		},
 	}
-
-	switch pipelineInfo.ConfigurationAction {
-	case topoapi.P4PipelineInfo_VERIFY:
-		pipelineConfigEntry.Action = p4rtapi.ConfigurationAction_VERIFY
-	case topoapi.P4PipelineInfo_VERIFY_AND_COMMIT:
-		pipelineConfigEntry.Action = p4rtapi.ConfigurationAction_VERIFY_AND_COMMIT
-	case topoapi.P4PipelineInfo_RECONCILE_AND_COMMIT:
-		pipelineConfigEntry.Action = p4rtapi.ConfigurationAction_RECONCILE_AND_COMMIT
-	case topoapi.P4PipelineInfo_COMMIT:
-		pipelineConfigEntry.Action = p4rtapi.ConfigurationAction_COMMIT
-	case topoapi.P4PipelineInfo_VERIFY_AND_SAVE:
-		pipelineConfigEntry.Action = p4rtapi.ConfigurationAction_VERIFY_AND_SAVE
-	default:
-		pipelineConfigEntry.Action = p4rtapi.ConfigurationAction_VERIFY_AND_COMMIT
-
-	}
-
+	pipelineConfigEntry.Action = ToConfigAction(pipelineInfo.ConfigurationAction)
 	err = r.pipelineConfigs.Create(ctx, pipelineConfigEntry)
 	if err != nil {
 		if !errors.IsAlreadyExists(err) {
@@ -164,7 +148,7 @@ func (r *Reconciler) createPipelineConfig(ctx context.Context, pipelineConfigID 
 		log.Warn(err)
 		return controller.Result{}, nil
 	}
-	log.Infow("Device Pipeline config is created successfully in pipeline config data store", "pipelineConfigID", pipelineConfigID, "target ID", targetID)
+	log.Infow("Device Pipeline config is created successfully in pipeline config data store", "pipelineConfigID", pipelineConfigID, "target ID", targetID, "action", pipelineConfigEntry.Action.String())
 	return controller.Result{}, nil
 
 }
@@ -173,7 +157,6 @@ func (r *Reconciler) createPipelineConfig(ctx context.Context, pipelineConfigID 
 func (r *Reconciler) Reconcile(id controller.ID) (controller.Result, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
-
 	pipelineConfigID := id.Value.(p4rtapi.PipelineConfigID)
 	pipelineConfig, err := r.pipelineConfigs.Get(ctx, pipelineConfigID)
 	if err != nil {
@@ -181,39 +164,30 @@ func (r *Reconciler) Reconcile(id controller.ID) (controller.Result, error) {
 			log.Warnw("Failed to reconcile Pipeline Configuration", "pipelineConfig ID", pipelineConfigID, "error", err)
 			return controller.Result{}, err
 		}
-
 		return r.createPipelineConfig(ctx, pipelineConfigID)
 	}
 
-	log.Infow("Reconcile device pipeline configuration", "pipelineConfig ID", pipelineConfig.ID, "targetID", pipelineConfig.TargetID)
-	if pipelineConfig.Spec == nil || len(pipelineConfig.Spec.P4Info) == 0 {
-		log.Errorw("Failed Reconciling device pipeline config", "pipelineConfig ID", pipelineConfig.ID, "targetID", pipelineConfig.TargetID, "error", err)
+	return r.reconcileConfiguration(ctx, pipelineConfig)
+
+}
+func (r *Reconciler) reconcileConfiguration(ctx context.Context, pipelineConfigEntry *p4rtapi.PipelineConfig) (controller.Result, error) {
+	log.Infow("Reconcile device pipeline configuration", "pipelineConfig ID", pipelineConfigEntry.ID, "targetID", pipelineConfigEntry.TargetID)
+	if pipelineConfigEntry.Spec == nil || len(pipelineConfigEntry.Spec.P4Info) == 0 {
+		log.Warn("Failed Reconciling device pipeline config; pipeline config spec is not initialized", "pipelineConfig ID", pipelineConfigEntry.ID, "targetID", pipelineConfigEntry.TargetID)
 		return controller.Result{}, nil
 	}
 
-	log.Infow("Reconciling Device Pipeline Config", "pipelineConfig ID", pipelineConfig.ID, "targetID", pipelineConfig.TargetID)
-
-	switch pipelineConfig.Action {
-	case p4rtapi.ConfigurationAction_VERIFY_AND_COMMIT:
-		log.Infow("Reconciling device pipeline config for VERIFY_AND_COMMIT action", "pipelineConfig ID", pipelineConfig.ID, "targetID", pipelineConfig.TargetID)
-		return r.reconcileVerifyAndCommitAction(ctx, pipelineConfig)
-	}
-
-	return controller.Result{}, nil
-
-}
-func (r *Reconciler) reconcileVerifyAndCommitAction(ctx context.Context, pipelineConfig *p4rtapi.PipelineConfig) (controller.Result, error) {
-	targetID := topoapi.ID(pipelineConfig.TargetID)
+	targetID := topoapi.ID(pipelineConfigEntry.TargetID)
 	targetClient, target, err := r.adminController.Client(ctx, targetID)
 	if err != nil {
 		if !errors.IsNotFound(err) {
-			log.Errorw("Failed Reconciling device pipeline config", "pipelineConfig ID", pipelineConfig.ID, "targetID", targetID, "error", err)
+			log.Errorw("Failed Reconciling device pipeline config", "pipelineConfig ID", pipelineConfigEntry.ID, "targetID", targetID, "error", err)
 			return controller.Result{}, err
 		}
-		pipelineConfig.Status.State = p4rtapi.PipelineConfigStatus_UNKNOWN
-		pipelineConfig.Status.Mastership.Master = ""
-		pipelineConfig.Status.Mastership.Term = 0
-		if err := r.updateConfigurationStatus(ctx, pipelineConfig); err != nil {
+		pipelineConfigEntry.Status.State = p4rtapi.PipelineConfigStatus_UNKNOWN
+		pipelineConfigEntry.Status.Mastership.Master = ""
+		pipelineConfigEntry.Status.Mastership.Term = 0
+		if err := r.updateConfigurationStatus(ctx, pipelineConfigEntry); err != nil {
 			return controller.Result{}, err
 		}
 		return controller.Result{}, nil
@@ -222,75 +196,98 @@ func (r *Reconciler) reconcileVerifyAndCommitAction(ctx context.Context, pipelin
 	p4rtServerInfo := &topoapi.P4RTServerInfo{}
 	err = target.GetAspect(p4rtServerInfo)
 	if err != nil {
-		log.Errorw("Failed Reconciling device pipeline config", "pipelineConfig ID", pipelineConfig.ID, "targetID", targetID, "error", err)
+		log.Errorw("Failed Reconciling device pipeline config", "pipelineConfig ID", pipelineConfigEntry.ID, "targetID", targetID, "error", err)
 		return controller.Result{}, err
+	}
+
+	pipelineConfigIDItems := strings.Split(string(pipelineConfigEntry.ID), "-")
+	pipelineName := pipelineConfigIDItems[1]
+	pipelineVersion := pipelineConfigIDItems[2]
+	pipelineArch := pipelineConfigIDItems[3]
+	for _, pipeline := range p4rtServerInfo.Pipelines {
+		if pipeline.Name == pipelineName && pipeline.Version == pipelineVersion && pipeline.Architecture == pipelineArch {
+			if pipeline.ConfigurationAction.String() != pipelineConfigEntry.Action.String() {
+				pipelineConfigEntry.Status.State = p4rtapi.PipelineConfigStatus_PENDING
+				pipelineConfigEntry.Action = ToConfigAction(pipeline.ConfigurationAction)
+				if err := r.updateConfigurationStatus(ctx, pipelineConfigEntry); err != nil {
+					return controller.Result{}, err
+				}
+				log.Infow("Updating pipeline configuration action", "pipeline config action", pipelineConfigEntry.Action)
+				return controller.Result{}, nil
+
+			}
+		}
 	}
 
 	mastership := topoapi.P4RTMastershipState{}
 	_ = target.GetAspect(&mastership)
 	mastershipTerm := p4rtapi.MastershipTerm(mastership.Term)
 
-	if mastershipTerm > pipelineConfig.Status.Mastership.Term {
-		pipelineConfig.Status.State = p4rtapi.PipelineConfigStatus_PENDING
-		pipelineConfig.Status.Mastership.Master = mastership.NodeId
-		pipelineConfig.Status.Mastership.Term = mastershipTerm
-		if err := r.updateConfigurationStatus(ctx, pipelineConfig); err != nil {
+	if mastershipTerm > pipelineConfigEntry.Status.Mastership.Term {
+		pipelineConfigEntry.Status.State = p4rtapi.PipelineConfigStatus_PENDING
+		pipelineConfigEntry.Status.Mastership.Master = mastership.NodeId
+		pipelineConfigEntry.Status.Mastership.Term = mastershipTerm
+		if err := r.updateConfigurationStatus(ctx, pipelineConfigEntry); err != nil {
 			return controller.Result{}, err
 		}
-		log.Infow("Mastership is changed; Pipeline Configuration state is changed to PENDING", "pipelineConfig ID", pipelineConfig.ID, "targetID", targetID)
+		log.Infow("Mastership is changed; Pipeline Configuration state is changed to PENDING", "pipelineConfig ID", pipelineConfigEntry.ID, "targetID", targetID)
 		return controller.Result{}, nil
 	}
 
-	if pipelineConfig.Status.State != p4rtapi.PipelineConfigStatus_PENDING {
-		log.Warnw("Failed reconciling device pipeline config", "pipelineConfig ID", pipelineConfig.ID, "targetID", pipelineConfig.TargetID, "state", pipelineConfig.Status.State)
+	if pipelineConfigEntry.Status.State != p4rtapi.PipelineConfigStatus_PENDING {
+		log.Warnw("Failed reconciling device pipeline config", "pipelineConfig ID", pipelineConfigEntry.ID, "targetID", pipelineConfigEntry.TargetID, "state", pipelineConfigEntry.Status.State)
 		return controller.Result{}, nil
 	}
 
 	// If the master node ID is not set, skip reconciliation.
 	if mastership.NodeId == "" {
-		log.Infow("No master for target", "pipelineConfig ID", pipelineConfig.ID, "targetID", pipelineConfig.TargetID)
+		log.Infow("No master for target", "pipelineConfig ID", pipelineConfigEntry.ID, "targetID", pipelineConfigEntry.TargetID)
 		return controller.Result{}, nil
 	}
 
 	if len(p4rtServerInfo.Pipelines) == 0 {
-		log.Errorw("No pipeline information found for target", "pipelineConfig ID", pipelineConfig.ID, "targetID", pipelineConfig.TargetID, "error", err)
+		log.Errorw("No pipeline information found for target", "pipelineConfig ID", pipelineConfigEntry.ID, "targetID", pipelineConfigEntry.TargetID, "error", err)
 		return controller.Result{}, errors.NewNotFound("Device pipeline config info is not found", targetID)
 	}
 
-	p4InfoBytes := pipelineConfig.Spec.P4Info
-	p4DeviceConfig := pipelineConfig.Spec.P4DeviceConfig
+	p4InfoBytes := pipelineConfigEntry.Spec.P4Info
+	p4DeviceConfig := pipelineConfigEntry.Spec.P4DeviceConfig
 
 	p4Info := &p4configapi.P4Info{}
 	err = proto.Unmarshal(p4InfoBytes, p4Info)
 	if err != nil {
-		log.Errorw("Failed reconciling device pipeline config", "pipelineConfig ID", pipelineConfig.ID, "targetID", pipelineConfig.TargetID, "error", err)
+		log.Errorw("Failed reconciling device pipeline config", "pipelineConfig ID", pipelineConfigEntry.ID, "targetID", pipelineConfigEntry.TargetID, "error", err)
 		return controller.Result{}, err
 	}
+
+	action := ToSetPipelineConfigReqAction(pipelineConfigEntry.Action)
+	log.Infow("Reconciling device pipeline config", "action", action.String())
 
 	pipelineConfigSpec := &admin.PipelineConfigSpec{
 		P4Info:         p4Info,
 		P4DeviceConfig: p4DeviceConfig,
-		Action:         p4api.SetForwardingPipelineConfigRequest_VERIFY_AND_COMMIT,
+		Action:         action,
 	}
 
 	pipelineConfigResponse, err := targetClient.SetForwardingPipelineConfig(ctx, pipelineConfigSpec)
 
 	if err != nil {
-		log.Errorw("Failed Reconciling device pipeline config", "pipelineConfig ID", pipelineConfig.ID, "targetID", pipelineConfig.TargetID, "error", err)
-		pipelineConfig.Status.State = p4rtapi.PipelineConfigStatus_FAILED
-		if err := r.updateConfigurationStatus(ctx, pipelineConfig); err != nil {
+		log.Errorw("Failed Reconciling device pipeline config", "pipelineConfig ID", pipelineConfigEntry.ID, "targetID", pipelineConfigEntry.TargetID, "error", err)
+		pipelineConfigEntry.Status.State = p4rtapi.PipelineConfigStatus_FAILED
+		if err := r.updateConfigurationStatus(ctx, pipelineConfigEntry); err != nil {
 			return controller.Result{}, err
 		}
 		return controller.Result{}, nil
 	}
 	log.Infow("Pipeline config response", "pipeline config response", pipelineConfigResponse)
-	pipelineConfig.Status.State = p4rtapi.PipelineConfigStatus_COMPLETE
-	pipelineConfig.Status.Mastership.Master = mastership.NodeId
-	pipelineConfig.Status.Mastership.Term = mastershipTerm
-	if err := r.updateConfigurationStatus(ctx, pipelineConfig); err != nil {
+	pipelineConfigEntry.Status.State = p4rtapi.PipelineConfigStatus_COMPLETE
+	pipelineConfigEntry.Status.Mastership.Master = mastership.NodeId
+	pipelineConfigEntry.Status.Mastership.Term = mastershipTerm
+	if err := r.updateConfigurationStatus(ctx, pipelineConfigEntry); err != nil {
 		return controller.Result{}, err
 	}
-	log.Infow("Device pipelineConfig is completed successfully", "pipelineConfig ID", pipelineConfig.ID, "targetID", pipelineConfig.TargetID)
+	log.Infow("Device pipelineConfig is completed successfully", "pipelineConfig ID", pipelineConfigEntry.ID, "targetID",
+		pipelineConfigEntry.TargetID, "Action", pipelineConfigEntry.Action.String())
 	return controller.Result{}, nil
 }
 
@@ -306,4 +303,40 @@ func (r *Reconciler) updateConfigurationStatus(ctx context.Context, pipelineConf
 		return nil
 	}
 	return nil
+}
+
+func ToConfigAction(action topoapi.P4PipelineInfo_ConfigurationAction) p4rtapi.ConfigurationAction {
+	var configAction p4rtapi.ConfigurationAction
+	switch action {
+	case topoapi.P4PipelineInfo_VERIFY_AND_COMMIT:
+		configAction = p4rtapi.ConfigurationAction_VERIFY_AND_COMMIT
+	case topoapi.P4PipelineInfo_RECONCILE_AND_COMMIT:
+		configAction = p4rtapi.ConfigurationAction_RECONCILE_AND_COMMIT
+	case topoapi.P4PipelineInfo_COMMIT:
+		configAction = p4rtapi.ConfigurationAction_COMMIT
+	case topoapi.P4PipelineInfo_VERIFY_AND_SAVE:
+		configAction = p4rtapi.ConfigurationAction_VERIFY_AND_SAVE
+	case topoapi.P4PipelineInfo_VERIFY:
+		configAction = p4rtapi.ConfigurationAction_VERIFY
+
+	}
+
+	return configAction
+}
+
+func ToSetPipelineConfigReqAction(configAction p4rtapi.ConfigurationAction) p4api.SetForwardingPipelineConfigRequest_Action {
+	var action p4api.SetForwardingPipelineConfigRequest_Action
+	switch configAction {
+	case p4rtapi.ConfigurationAction_VERIFY_AND_COMMIT:
+		action = p4api.SetForwardingPipelineConfigRequest_VERIFY_AND_COMMIT
+	case p4rtapi.ConfigurationAction_VERIFY:
+		action = p4api.SetForwardingPipelineConfigRequest_VERIFY
+	case p4rtapi.ConfigurationAction_RECONCILE_AND_COMMIT:
+		action = p4api.SetForwardingPipelineConfigRequest_RECONCILE_AND_COMMIT
+	case p4rtapi.ConfigurationAction_VERIFY_AND_SAVE:
+		action = p4api.SetForwardingPipelineConfigRequest_RECONCILE_AND_COMMIT
+	case p4rtapi.ConfigurationAction_COMMIT:
+		action = p4api.SetForwardingPipelineConfigRequest_COMMIT
+	}
+	return action
 }
