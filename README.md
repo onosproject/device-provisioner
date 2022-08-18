@@ -11,16 +11,16 @@ SPDX-License-Identifier: Apache-2.0
 
 # Device-provisioner
 The main objective of this project is to provide an SDN application for provisioning of 
-device pipeline config using [P4Runtime][P4Runtime] and [gNMI][gNMI] automatically as the devices in a network get discovered/provisioned using 
+device pipeline config automatically using [P4Runtime][P4Runtime] and [gNMI][gNMI]  as the devices in a network get discovered/provisioned using 
 [onos-topo] subsystem. 
 
 
 ## Architecture
 The application uses [onos-p4-sdk][onos-p4-sdk], [Atomix][Atomix], and [onos-p4-plugins][onos-p4-plugins] to 
 implement a reconciliation loop controller that
-brings the actual state device pipeline config to a desired state for each device where each device is defined as a programmable entity 
-in [onos-topo][onos-topo]. The following Figure shows the interactions of the app with micro-onos subsystems and 
-P4 programmable devices. 
+brings the actual state device pipeline config to a desired state for each device. Each device is defined as a programmable entity 
+in [onos-topo][onos-topo] and provides information about the pipelines for each device. The following Figure shows the 
+interactions of the app with micro-onos subsystems and data plane. 
 
 ![design](docs/images/arch.png)
 
@@ -28,16 +28,16 @@ P4 programmable devices.
 ### Device Pipeline Configuration Using P4Runtime API
 The application uses P4Runtime *SetForwardingPipelineConfig* RPC to set/update pipelines in a P4 programmable device. At very high level, the user specifies
 the pipelines and type of configuration action for each pipeline (e.g.  VERIFY, VERIFY_AND_COMMIT, RECONCILE_AND_COMMIT, etc)
-that should be provisioned for each device when the device entity is created in [onos-topo][onos-topo]. The pipeline config 
-reconciliation loop controller listens to topology changes and tries to reconcile the pipeline config and reach to the desired state
-based on the user request.
-The application also uses Atomix primitives (a map) for keeping the internal device pipeline config state per target.
+when the device entity is created in [onos-topo][onos-topo]. The pipeline config 
+reconciliation loop controller listens to topology changes and tries to reconcile the pipeline config  and reach to the desired state
+based on given information in topo.
+Furthermore, the application also uses Atomix primitives (a map) for keeping the internal device pipeline config state per target.
 
 ### Usage of P4 Plugins 
 Device provisioner uses [onos-p4-plugins][onos-p4-plugins] to implement a P4 program agnostic device pipeline 
-provisioning mechanism. Each P4 plugin provides an interface that allows to get access to the required information for 
-provisioning a device pipeline such as P4Info and P4 device config. Device provisioner uses the information for each pipeline 
-that user provides using onos-topo  (i.e. name, version, architecture of a P4 program) to
+provisioning mechanism. Each P4 plugin provides an interface that allows the application to get access to the required information for 
+provisioning a device pipeline such as P4Info and P4 device config. Device provisioner gets pipeline information from
+onos-topo that user provides  (i.e. name, version, architecture of a P4 program). The applications uses pipeline info to
 find appropriate P4 plugin using a plugin registry mechanism in the app. 
 
 # Getting Started 
@@ -45,10 +45,10 @@ find appropriate P4 plugin using a plugin registry mechanism in the app.
 
 **Prerequisites**: a Running kubernetes cluster, kubectl and helm installed. 
 
-To deploy the app and all required subsystems, the following steps should be followed:
+To deploy the app and all required subsystems, the following steps should be followed :
 
-1) First we should add required helm repos and deploy Atomix controllers and onos operators 
-that are required for deploying micro-onos subsystems and the application
+1) First we should add onosproject and Atomix helm repos and deploy Atomix controllers and onos operators 
+that are required for deploying micro-onos subsystems and the application.
 
 ```bash
 helm repo add atomix https://charts.atomix.io
@@ -85,9 +85,9 @@ onos-topo-6c966588c8-qgnj7            3/3     Running   0          2m14s
 
 
 > **Note**
-> onos-cli can be used to verify the first interactions of the app with onos-topo subsystem.
+> onos-cli can be used to verify the first interactions of the application with onos-topo subsystem.
 > When the app deployment becomes ready, it creates a CONTROLLER entity 
-> in onos-topo to represent itself as a control plan entity.
+> in onos-topo to represent itself as a control plan entity. 
 
 
 
@@ -112,10 +112,10 @@ helm install stratum-simulator  -n micro-onos onos/stratum-simulator
 > stratum-simulator helm chart creates a linear topology with 2 switches by default. Each switch exposes a different gRPC port, 
 > starting from 50001 and increasing.
 
-2) Switch entities should be created to onos-topo that allows the application to make connection to the P4Runtime server
-running on each device. To do so, onos-topo-operator which is deployed already will be used to create those entities in topo
-To create two switch entities in topo:
- - Create the following yaml file (we name it topo.yaml)
+2) Switch entities should be created in onos-topo that allows the application to make a connection to the P4Runtime server
+running on each device. To do so, onos-topo-operator can be used to create those entities in onos-topo
+To create two switch entities in onos-topo:
+ - Create the following yaml file and name it topo.yaml
  - Apply it in the namespace where the app deployed using kubectl or helm.
 
 ```yaml
