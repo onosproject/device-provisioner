@@ -10,7 +10,7 @@ import (
 	atomixclient "github.com/atomix/go-client/pkg/client"
 	"github.com/atomix/go-client/pkg/generic"
 	"github.com/atomix/go-client/pkg/primitive"
-	atomicmap "github.com/atomix/go-client/pkg/primitive/atomic/map"
+	atomicmap "github.com/atomix/go-client/pkg/primitive/map"
 	p4rtapi "github.com/onosproject/onos-api/go/onos/p4rt/v1"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
@@ -95,7 +95,7 @@ type configurationStore struct {
 
 // NewAtomixStore creates a new Atomix store for device pipeline config configurations
 func NewAtomixStore(client primitive.Client) (Store, error) {
-	pipelineConfigsAtomicMap, err := atomixclient.AtomicMap[p4rtapi.PipelineConfigID, *p4rtapi.PipelineConfig](client)("device-provisioner-pipelineconfig-configurations").
+	pipelineConfigsAtomicMap, err := atomixclient.Map[p4rtapi.PipelineConfigID, *p4rtapi.PipelineConfig](client)("device-provisioner-pipelineconfig-configurations").
 		Codec(generic.GoGoProto[*p4rtapi.PipelineConfig](&p4rtapi.PipelineConfig{})).
 		Get(context.Background())
 

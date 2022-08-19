@@ -4,7 +4,7 @@ go 1.19
 
 require (
 	github.com/atomix/atomix-go-client v0.6.2
-	github.com/atomix/go-client v0.7.2
+	github.com/atomix/go-client v0.8.1
 	github.com/onosproject/onos-api/go v0.9.34
 	github.com/onosproject/onos-lib-go v0.9.0
 	github.com/onosproject/onos-p4-sdk v0.1.9
@@ -25,12 +25,12 @@ require (
 	github.com/atomix/atomix-api/go v0.4.9 // indirect
 	github.com/atomix/atomix-go-framework v0.10.1 // indirect
 	github.com/atomix/atomix-go-local v0.8.0 // indirect
-	github.com/atomix/multi-raft-storage/api v0.3.6 // indirect
-	github.com/atomix/multi-raft-storage/driver v0.3.5 // indirect
-	github.com/atomix/multi-raft-storage/node v0.3.5 // indirect
-	github.com/atomix/runtime/api v0.3.4 // indirect
+	github.com/atomix/multi-raft-storage/api v0.4.5 // indirect
+	github.com/atomix/multi-raft-storage/driver v0.4.1 // indirect
+	github.com/atomix/multi-raft-storage/node v0.4.1 // indirect
+	github.com/atomix/runtime/api v0.4.0 // indirect
 	github.com/atomix/runtime/proxy v0.2.2 // indirect
-	github.com/atomix/runtime/sdk v0.3.4 // indirect
+	github.com/atomix/runtime/sdk v0.4.1 // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
 	github.com/bits-and-blooms/bloom/v3 v3.2.0 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
