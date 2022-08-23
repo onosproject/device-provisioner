@@ -42,6 +42,8 @@ device-provisioner-app-docker:  # @HELP build device-provisioner base Docker ima
 	docker build --platform linux/amd64 . -f build/device-provisioner/Dockerfile \
 		-t ${DOCKER_REPOSITORY}device-provisioner:${DEVICE_PROVISIONER_APP_VERSION}
 
+
+
 images: # @HELP build all Docker images
 images: device-provisioner-app-docker
 
