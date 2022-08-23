@@ -7,7 +7,7 @@ require (
 	github.com/atomix/go-client v0.8.1
 	github.com/onosproject/onos-api/go v0.9.36
 	github.com/onosproject/onos-lib-go v0.9.0
-	github.com/onosproject/onos-p4-sdk v0.1.10
+	github.com/onosproject/onos-p4-sdk v0.1.11
 	github.com/onosproject/onos-topo v0.9.7
 	github.com/p4lang/p4runtime v1.4.0-rc.5
 	github.com/rogpeppe/go-internal v1.8.1
