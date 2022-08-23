@@ -180,31 +180,36 @@ entity.topo.onosproject.org/p4rt.s1 created
 entity.topo.onosproject.org/p4rt.s2 created
 ```
 
-when the entities created, you can check new entities and control relations between the app and each of the switches. 
+when the entities created, you can check new entities and relations between them
 
 To see the new switch entities, use onos-cli and run the following command:
 
 ```bash
-$ onos topo get entities
-Entity ID                                  Kind ID       Labels   Aspects
-p4rt:s2                                    switch        <None>   onos.topo.P4RTServerInfo,onos.topo.TLSOptions,onos.topo.Switch,onos.topo.P4RTMastershipState,onos.topo.MastershipState
-gnmi:onos-config-b54c89548-tdsbd           onos-config   <None>   onos.topo.Lease
-p4rt:device-provisioner-59f4657b46-pk52z   controller    <None>   onos.topo.ControllerInfo,onos.topo.Lease
-p4rt:s1                                    switch        <None>   onos.topo.TLSOptions,onos.topo.P4RTServerInfo,onos.topo.P4RTMastershipState,onos.topo.Switch
+$ onos topo get entity
+Entity ID                                 Kind ID       Labels   Aspects
+p4rt:s2                                   switch        <None>   onos.topo.Switch,onos.topo.MastershipState,onos.topo.TLSOptions,onos.topo.P4RTServerInfo
+p4rt:s1                                   switch        <None>   onos.topo.MastershipState,onos.topo.Switch,onos.topo.TLSOptions,onos.topo.P4RTServerInfo
+service:device-provisioner/p4rt:s1        service       <None>   onos.topo.Service
+service:device-provisioner/p4rt:s2        service       <None>   onos.topo.Service
+gnmi:onos-config-5b8574d546-wqtj4         onos-config   <None>   onos.topo.Lease
+app:device-provisioner-695c7cc458-fwwmm   controller    <None>   onos.topo.ControllerInfo,onos.topo.Lease
 ````
 
 To see the new relations that are created by the app, run the following command.
 ```bash
 $ onos topo get relations
-Relation ID                                 Kind ID    Source ID                                  Target ID   Labels   Aspects
-uuid:016f758a-069a-4ab3-ae85-c1d900341791   controls   p4rt:device-provisioner-59f4657b46-pk52z   p4rt:s1     <None>   <None>
-uuid:29477dca-1d27-4777-baca-cde36918b843   controls   p4rt:device-provisioner-59f4657b46-pk52z   p4rt:s2     <None>   <None>
+Relation ID                                  Kind ID      Source ID                                 Target ID                            Labels   Aspects
+uuid:7c65fda2-971e-4a1a-859a-5311de5985e7    connection   app:device-provisioner-695c7cc458-fwwmm   service:device-provisioner/p4rt:s1   <None>   <None>
+service:device-provisioner/p4rt:s2:p4rt:s2   controls     service:device-provisioner/p4rt:s2        p4rt:s2                              <None>   <None>
+service:device-provisioner/p4rt:s1:p4rt:s1   controls     service:device-provisioner/p4rt:s1        p4rt:s1                              <None>   <None>
+uuid:ec3b5e9c-f403-4493-a33f-abbcea9e94a4    connection   app:device-provisioner-695c7cc458-fwwmm   service:device-provisioner/p4rt:s2   <None>   <None>
 ```
 
 > **Note**: 
-> Each CONTROL relation represents a connection from 
-> the app (source ID is the ID of controller entity which represents the app) 
-> to a switch (target ID is the switch entity ID). 
+> CONTROLLER entity: each app instance creates a controller entity to represent itself in onos-topo
+> SERVICE entity: this is an intermediate  entity which connects a controller entity to a data plane entity (e.g. SWITCH) and allows each app to store mastership state for its role. 
+> CONNECTION relations represents each connection from the app to the target. 
+> CONTROL relation is a connection between the SERVICE entity and target.
 
 To verify the devices are configured successfully, you can check device-provisioner app logs. We are planning to provide
 CLI that you can check the state of pipeline config per target. 
