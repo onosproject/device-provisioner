@@ -16,3 +16,11 @@ func GetControllerID() topoapi.ID {
 		uri.WithScheme("p4rt"),
 		uri.WithOpaque(env.GetPodID())).String())
 }
+
+// GetServiceID gets service URI
+func GetServiceID(targetID topoapi.ID) topoapi.ID {
+	opaque := env.GetServiceName() + "/" + string(targetID)
+	return topoapi.ID(uri.NewURI(
+		uri.WithScheme("p4rt"),
+		uri.WithOpaque(opaque)).String())
+}

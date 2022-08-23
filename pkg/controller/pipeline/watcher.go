@@ -87,7 +87,7 @@ func (w *TopoWatcher) Start(ch chan<- controller.ID) error {
 	go func() {
 		for event := range eventCh {
 			log.Debugw("Received topo event", "topo object ID", event.Object.ID, "event type", event.Type)
-			if _, ok := event.Object.Obj.(*topoapi.Object_Entity); ok {
+			if entity, ok := event.Object.Obj.(*topoapi.Object_Entity); ok {
 				log.Debugw("Event entity", "entity", event.Object)
 				p4rtServerInfo := &topoapi.P4RTServerInfo{}
 				err = event.Object.GetAspect(p4rtServerInfo)
@@ -97,7 +97,24 @@ func (w *TopoWatcher) Start(ch chan<- controller.ID) error {
 							pipelineInfo.Name, pipelineInfo.Version,
 							pipelineInfo.Architecture))
 					}
-
+				}
+				if entity.Entity.KindID == topoapi.ServiceKind {
+					serviceAspect := &topoapi.Service{}
+					err = event.Object.GetAspect(serviceAspect)
+					if err == nil {
+						targetEntity, err := w.topo.Get(ctx, topoapi.ID(serviceAspect.TargetID))
+						if err == nil {
+							p4rtServerInfo = &topoapi.P4RTServerInfo{}
+							err = targetEntity.GetAspect(p4rtServerInfo)
+							if err == nil {
+								for _, pipelineInfo := range p4rtServerInfo.Pipelines {
+									ch <- controller.NewID(pipelineconfig.NewPipelineConfigID(p4rtapi.TargetID(serviceAspect.TargetID),
+										pipelineInfo.Name, pipelineInfo.Version,
+										pipelineInfo.Architecture))
+								}
+							}
+						}
+					}
 				}
 			}
 		}
