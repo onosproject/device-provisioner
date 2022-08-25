@@ -89,12 +89,12 @@ func (s Server) WatchPipelines(request *admin.WatchPipelinesRequest, server admi
 		return errors.Status(err).Err()
 	}
 
-	if err := s.streamConfigurations(server, ch); err != nil {
+	if err := s.streamPipelines(server, ch); err != nil {
 		return errors.Status(err).Err()
 	}
 	return nil
 }
-func (s Server) streamConfigurations(server admin.PipelineConfigService_WatchPipelinesServer, ch chan *p4rtapi.PipelineConfig) error {
+func (s Server) streamPipelines(server admin.PipelineConfigService_WatchPipelinesServer, ch chan *p4rtapi.PipelineConfig) error {
 	for event := range ch {
 		res := &admin.WatchPipelinesResponse{
 			PipelineConfig: *event,
