@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/atomix/atomix-go-client v0.6.2
 	github.com/atomix/go-client v0.8.1
-	github.com/onosproject/onos-api/go v0.9.36
+	github.com/onosproject/onos-api/go v0.9.37
 	github.com/onosproject/onos-lib-go v0.9.0
 	github.com/onosproject/onos-p4-sdk v0.1.11
 	github.com/onosproject/onos-topo v0.9.7
