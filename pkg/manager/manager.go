@@ -7,6 +7,7 @@ package manager
 import (
 	"github.com/atomix/go-client/pkg/client"
 	"github.com/onosproject/device-provisioner/pkg/controller/pipeline"
+	nbi "github.com/onosproject/device-provisioner/pkg/northbound"
 	"github.com/onosproject/device-provisioner/pkg/pluginregistry"
 	"github.com/onosproject/device-provisioner/pkg/store/pipelineconfig"
 	"github.com/onosproject/device-provisioner/pkg/store/topo"
@@ -88,7 +89,7 @@ func (m *Manager) start() error {
 		return err
 	}
 	// Starts NB server
-	err = m.startNorthboundServer()
+	err = m.startNorthboundServer(pipelineConfigStore)
 	if err != nil {
 		return err
 	}
@@ -97,7 +98,7 @@ func (m *Manager) start() error {
 }
 
 // startSouthboundServer starts the northbound gRPC server
-func (m *Manager) startNorthboundServer() error {
+func (m *Manager) startNorthboundServer(pipelineConfigStore pipelineconfig.Store) error {
 	log.Info("Starting NB server")
 	s := northbound.NewServer(northbound.NewServerCfg(
 		m.Config.CAPath,
@@ -107,6 +108,7 @@ func (m *Manager) startNorthboundServer() error {
 		true,
 		northbound.SecurityConfig{}))
 	s.AddService(logging.Service{})
+	s.AddService(nbi.NewService(pipelineConfigStore))
 
 	doneCh := make(chan error)
 	go func() {
