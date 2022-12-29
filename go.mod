@@ -6,14 +6,12 @@ require (
 	github.com/atomix/go-sdk v0.10.0
 	github.com/atomix/runtime/sdk v0.7.4
 	github.com/gogo/protobuf v1.3.2
-	github.com/onosproject/onos-api/go v0.10.10
+	github.com/onosproject/onos-api/go v0.10.12
 	github.com/onosproject/onos-lib-go v0.10.4
 	github.com/spf13/cobra v1.5.0
 	github.com/stretchr/testify v1.8.0
 	google.golang.org/grpc v1.48.0
 )
-
-replace github.com/onosproject/onos-api/go => ../onos-api/go
 
 require (
 	github.com/Shopify/sarama v1.31.1 // indirect
