@@ -36,19 +36,19 @@ func TestTopoStore(t *testing.T) {
 	assert.Len(t, read(ch), 0)
 
 	// Create few new configs
-	pr1 := &provisioner.ConfigRecord{ConfigID: "fp_foo_spine", Revision: 0, Kind: PipelineConfigKind, Artifacts: nil}
+	pr1 := &provisioner.ConfigRecord{ConfigID: "fp_foo_spine", Kind: PipelineConfigKind, Artifacts: nil}
 	pa1 := Artifacts{"p4info": []byte("p4info content"), "bin": []byte("device binary")}
 	err = store.Add(ctx, pr1, pa1)
 	assert.NoError(t, err)
 	assert.Len(t, pr1.Artifacts, 2)
 
-	pr2 := &provisioner.ConfigRecord{ConfigID: "fp_foo_leaf", Revision: 0, Kind: PipelineConfigKind, Artifacts: nil}
+	pr2 := &provisioner.ConfigRecord{ConfigID: "fp_foo_leaf", Kind: PipelineConfigKind, Artifacts: nil}
 	pa2 := Artifacts{"p4info": []byte("p4info content"), "bin": []byte("different device binary")}
 	err = store.Add(ctx, pr2, pa2)
 	assert.NoError(t, err)
 	assert.Len(t, pr2.Artifacts, 2)
 
-	cr1 := &provisioner.ConfigRecord{ConfigID: "ch_foo_leaf", Revision: 0, Kind: ChassisConfigKind, Artifacts: nil}
+	cr1 := &provisioner.ConfigRecord{ConfigID: "ch_foo_leaf", Kind: ChassisConfigKind, Artifacts: nil}
 	ca1 := Artifacts{"json": []byte("json content")}
 	err = store.Add(ctx, cr1, ca1)
 	assert.NoError(t, err)
@@ -80,7 +80,7 @@ func TestTopoStore(t *testing.T) {
 	assert.Len(t, read(ch), 1)
 
 	// Delete one of the pipeline configurations
-	assert.NoError(t, store.Delete(ctx, &provisioner.ConfigRecord{ConfigID: "fp_foo_spine"}))
+	assert.NoError(t, store.Delete(ctx, "fp_foo_spine"))
 
 	// List all pipeline configurations; there should be 1
 	ch = make(chan *provisioner.ConfigRecord, depth)
@@ -94,11 +94,10 @@ func TestTopoStore(t *testing.T) {
 	assert.Error(t, err)
 
 	// Try to delete item that was already deleted
-	assert.Error(t, store.Delete(ctx, &provisioner.ConfigRecord{ConfigID: "fp_foo_spine"}))
+	assert.Error(t, store.Delete(ctx, "fp_foo_spine"))
 
-	// Try to delete item with bad revision number or an empty id
-	assert.Error(t, store.Delete(ctx, &provisioner.ConfigRecord{ConfigID: "fp_foo_spine", Revision: 4}))
-	assert.Error(t, store.Delete(ctx, &provisioner.ConfigRecord{ConfigID: ""}))
+	// Try to delete item with an empty id
+	assert.Error(t, store.Delete(ctx, ""))
 
 	// Try to add an item that already exists
 	assert.Error(t, store.Add(ctx, pr2, pa2))

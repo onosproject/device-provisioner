@@ -51,9 +51,9 @@ type Server struct {
 
 // Add registers new pipeline configuration
 func (s *Server) Add(ctx context.Context, request *api.AddConfigRequest) (*api.AddConfigResponse, error) {
-	log.Infof("Received add request: %+v", request)
+	log.Infof("Received add request for: %+v", request.Config.Record)
 	if err := s.configStore.Add(ctx, request.Config.Record, request.Config.Artifacts); err != nil {
-		log.Warnf("Request %+v failed adding configuration: %v", request, err)
+		log.Warnf("Failed adding configuration %+v: %v", request.Config.Record, err)
 		return nil, errors.Status(err).Err()
 	}
 	return &api.AddConfigResponse{}, nil
@@ -62,8 +62,8 @@ func (s *Server) Add(ctx context.Context, request *api.AddConfigRequest) (*api.A
 // Delete removes a pipeline configuration
 func (s *Server) Delete(ctx context.Context, request *api.DeleteConfigRequest) (*api.DeleteConfigResponse, error) {
 	log.Infof("Received delete request: %+v", request)
-	if err := s.configStore.Delete(ctx, request.Record); err != nil {
-		log.Warnf("Request %+v failed deleting configuration: %v", request, err)
+	if err := s.configStore.Delete(ctx, request.ConfigID); err != nil {
+		log.Warnf("Failed deleting configuration %s: %v", request.ConfigID, err)
 		return nil, errors.Status(err).Err()
 	}
 	return &api.DeleteConfigResponse{}, nil
@@ -74,13 +74,16 @@ func (s *Server) Get(ctx context.Context, request *api.GetConfigRequest) (*api.G
 	log.Infof("Received get request: %+v", request)
 	record, err := s.configStore.Get(ctx, request.ConfigID)
 	if err != nil {
-		log.Warnf("Request %+v failed retrieving configuration: %v", request, err)
+		log.Warnf("Failed retrieving configuration for %s: %v", request.ConfigID, err)
 		return nil, errors.Status(err).Err()
 	}
-	artifacts, err := s.configStore.GetArtifacts(ctx, record)
-	if err != nil {
-		log.Warnf("Request %+v failed retrieving artifacts: %v", request, err)
-		return nil, errors.Status(err).Err()
+	var artifacts map[string][]byte
+	if request.IncludeArtifacts {
+		artifacts, err = s.configStore.GetArtifacts(ctx, record)
+		if err != nil {
+			log.Warnf("Failed retrieving artifacts for %s: %v", request.ConfigID, err)
+			return nil, errors.Status(err).Err()
+		}
 	}
 	return &api.GetConfigResponse{Config: &api.Config{Record: record, Artifacts: artifacts}}, nil
 }
@@ -91,20 +94,22 @@ func (s *Server) List(request *api.ListConfigsRequest, server api.ProvisionerSer
 	ch := make(chan *api.ConfigRecord, 512)
 	go func() {
 		if err := s.configStore.List(server.Context(), request.Kind, ch); err != nil {
-			log.Warnf("Request %+v failed: %v", request, err)
+			log.Warnf("Failed listing configurations: %v", err)
 		}
 	}()
 
 	for record := range ch {
-		artifacts, err := s.configStore.GetArtifacts(server.Context(), record)
-		if err != nil {
-			log.Warnf("Request %+v failed retrieving artifacts: %v", request, err)
-			return err
+		var err error
+		var artifacts map[string][]byte
+		if request.IncludeArtifacts {
+			artifacts, err = s.configStore.GetArtifacts(server.Context(), record)
+			if err != nil {
+				log.Warnf("Failed retrieving artifacts for %s: %v", record.ConfigID, err)
+				return err
+			}
 		}
-		res := &api.ListConfigsResponse{Config: &api.Config{Record: record, Artifacts: artifacts}}
-		log.Debugf("Sending list response %+v", res)
-		if err = server.Send(res); err != nil {
-			log.Warnf("Unable to send response %+v: %v", res, err)
+		if err = server.Send(&api.ListConfigsResponse{Config: &api.Config{Record: record, Artifacts: artifacts}}); err != nil {
+			log.Warnf("Unable to send response for %s: %v", record.ConfigID, err)
 			return err
 		}
 	}

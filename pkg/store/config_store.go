@@ -46,7 +46,7 @@ type ConfigStore interface {
 	Add(ctx context.Context, record *provisioner.ConfigRecord, artifacts Artifacts) error
 
 	// Delete removes the specified configuration from the inventory
-	Delete(ctx context.Context, record *provisioner.ConfigRecord) error
+	Delete(ctx context.Context, configID provisioner.ConfigID) error
 
 	// Get returns the specified configuration record
 	Get(ctx context.Context, configID provisioner.ConfigID) (*provisioner.ConfigRecord, error)
@@ -103,7 +103,7 @@ func (s *atomixStore) Add(ctx context.Context, record *provisioner.ConfigRecord,
 		return err
 	}
 
-	entry, err := s.configs.Insert(ctx, record.ConfigID, record)
+	_, err := s.configs.Insert(ctx, record.ConfigID, record)
 	if err != nil {
 		err = errors.FromAtomix(err)
 		if !errors.IsAlreadyExists(err) {
@@ -113,31 +113,23 @@ func (s *atomixStore) Add(ctx context.Context, record *provisioner.ConfigRecord,
 		}
 		return err
 	}
-
-	record.Revision = provisioner.Revision(entry.Version)
 	return nil
 }
 
 // Delete removes the specified configuration from the inventory
-func (s *atomixStore) Delete(ctx context.Context, record *provisioner.ConfigRecord) error {
-	if record.ConfigID == "" {
+func (s *atomixStore) Delete(ctx context.Context, configID provisioner.ConfigID) error {
+	if configID == "" {
 		return errors.NewInvalid("ConfigID cannot be empty")
 	}
 
-	log.Infof("Deleting configuration '%s'", record.ConfigID)
-	var err error
-	var entry *_map.Entry[provisioner.ConfigID, *provisioner.ConfigRecord]
-	if record.Revision == 0 {
-		entry, err = s.configs.Remove(ctx, record.ConfigID)
-	} else {
-		entry, err = s.configs.Remove(ctx, record.ConfigID, _map.IfVersion(primitive.Version(record.Revision)))
-	}
+	log.Infof("Deleting configuration '%s'", configID)
+	entry, err := s.configs.Remove(ctx, configID)
 	if err != nil {
 		err = errors.FromAtomix(err)
 		if !errors.IsNotFound(err) && !errors.IsConflict(err) {
-			log.Errorf("Failed to delete configuration '%s': %v", record.ConfigID, err)
+			log.Errorf("Failed to delete configuration '%s': %v", configID, err)
 		} else {
-			log.Warnf("Failed to delete configuration '%s': %v", record.ConfigID, err)
+			log.Warnf("Failed to delete configuration '%s': %v", configID, err)
 		}
 		return err
 	}
@@ -162,7 +154,6 @@ func (s *atomixStore) Get(ctx context.Context, configID provisioner.ConfigID) (*
 		return nil, err
 	}
 	record := entry.Value
-	record.Revision = provisioner.Revision(entry.Version)
 	return record, nil
 }
 

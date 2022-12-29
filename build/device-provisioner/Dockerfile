@@ -19,7 +19,7 @@ RUN go build -mod=vendor -o build/_output/device-provisioner ./cmd/device-provis
 
 FROM alpine:3.13
 RUN apk add libc6-compat
-RUN mkdir -p /etc/device-provisioner && chmod 777 /etc/device-provisioner
+RUN mkdir -p /etc/onos/device-configs && chmod 777 /etc/onos/device-configs
 
 USER nobody
 
