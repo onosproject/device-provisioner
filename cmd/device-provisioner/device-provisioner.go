@@ -28,7 +28,7 @@ func main() {
 		Use:  "device-provisioner",
 		RunE: runRootCommand,
 	}
-	cmd.Flags().String(realmFlag, "", "realm of devices over which the provisioner should operate")
+	cmd.Flags().String(realmFlag, "all", "realm of devices over which the provisioner should operate")
 	cmd.Flags().String(topoAddressFlag, defaultTopoAddress, "address:port or just :port of the onos-topo service")
 	cmd.Flags().String(artifactDirFlag, defaultArtifactDir, "directory where artifact files are maintained")
 	cli.AddServiceEndpointFlags(cmd, "provisioner gRPC")
