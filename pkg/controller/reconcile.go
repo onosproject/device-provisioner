@@ -6,11 +6,17 @@
 package controller
 
 import (
+	"context"
 	"github.com/gogo/protobuf/proto"
+	"github.com/onosproject/device-provisioner/pkg/southbound"
 	"github.com/onosproject/onos-api/go/onos/provisioner"
 	topoapi "github.com/onosproject/onos-api/go/onos/topo"
 	"io"
 	"time"
+)
+
+const (
+	provisionerRoleName = "provisioner"
 )
 
 // Handles processing for the Initialized state
@@ -135,13 +141,24 @@ func (c *Controller) reconcilePipelineConfiguration(object *topoapi.Object, dcfg
 		}
 	}
 
-	// Otherwise...
+	// Otherwise... get the config for the artifacts
+	artifacts, err := c.configStore.GetArtifacts(context.Background(), &provisioner.ConfigRecord{ConfigID: dcfg.PipelineConfigID})
+	if err != nil {
+		return
+	}
 
 	// Connect to device using P4Runtime
-	// Establish message stream
-	// Negotiate mastership for our role
-	// Retrieve pipeline configuration - cookie only
-	// If there is a difference between the cookie on the device and the cookie in the object aspect, push new configuration
+	device, err := southbound.NewStratumDevice(object, provisionerRoleName)
+	if err != nil {
+		return
+	}
+
+	// Run the reconciliation against the device
+	pcState.Cookie, err = device.ReconcilePipelineConfig(artifacts["p4info"], artifacts["p4bin"], pcState.Cookie)
+	if err != nil {
+		return
+	}
+	_ = device.Disconnect()
 
 	// Update PipelineConfigState aspect
 	pcState.ConfigID = dcfg.PipelineConfigID
