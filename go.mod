@@ -8,7 +8,7 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/onosproject/onos-api/go v0.10.12
 	github.com/onosproject/onos-lib-go v0.10.4
-	github.com/onosproject/onos-net-lib v0.1.11
+	github.com/onosproject/onos-net-lib v0.1.12
 	github.com/p4lang/p4runtime v1.4.0-rc.5
 	github.com/spf13/cobra v1.5.0
 	github.com/stretchr/testify v1.8.0
