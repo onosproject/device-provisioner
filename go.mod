@@ -19,8 +19,6 @@ require (
 	google.golang.org/protobuf v1.28.0
 )
 
-replace github.com/onosproject/onos-lib-go => ../onos-lib-go
-
 require (
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/BurntSushi/toml v0.3.1 // indirect
