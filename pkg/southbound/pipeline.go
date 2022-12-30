@@ -17,6 +17,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/encoding/prototext"
+	"time"
 )
 
 var log = logging.GetLogger("southbound")
@@ -85,6 +86,8 @@ func (d *StratumP4) Connect() error {
 	if mar.ElectionId == nil || mar.ElectionId.High != d.electionID.High || mar.ElectionId.Low != d.electionID.Low {
 		return errors.NewInvalid("%s: did not win election", d.ID)
 	}
+
+	log.Infof("%s: connected", d.ID)
 	return nil
 }
 
@@ -106,7 +109,7 @@ func (d *StratumP4) ReconcilePipelineConfig(info []byte, binary []byte, cookie u
 	}
 
 	// if that matches our cookie, we're good
-	if cookie == gr.Config.Cookie.Cookie {
+	if cookie == gr.Config.Cookie.Cookie && cookie > 0 {
 		return cookie, nil
 	}
 
@@ -117,6 +120,7 @@ func (d *StratumP4) ReconcilePipelineConfig(info []byte, binary []byte, cookie u
 	}
 
 	// and then apply it to the device
+	newCookie := uint64(time.Now().UnixNano())
 	_, err = d.p4Client.SetForwardingPipelineConfig(d.ctx, &p4api.SetForwardingPipelineConfigRequest{
 		DeviceId:   d.p4Server.DeviceID,
 		Role:       d.roleName,
@@ -125,8 +129,12 @@ func (d *StratumP4) ReconcilePipelineConfig(info []byte, binary []byte, cookie u
 		Config: &p4api.ForwardingPipelineConfig{
 			P4Info:         p4i,
 			P4DeviceConfig: binary,
-			Cookie:         &p4api.ForwardingPipelineConfig_Cookie{Cookie: cookie},
+			Cookie:         &p4api.ForwardingPipelineConfig_Cookie{Cookie: newCookie},
 		},
 	})
-	return cookie, err
+	if err != nil {
+		return 0, nil
+	}
+	log.Infof("%s: pipeline configured with cookie %d", d.ID, newCookie)
+	return newCookie, err
 }

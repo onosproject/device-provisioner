@@ -114,16 +114,32 @@ func (c *Controller) monitorDeviceConfigChanges() {
 // Reconciliation worker
 func (c *Controller) reconcile(workerID int) {
 	for object := range c.queue {
-		// Make sure that the config store contains configuration matching the DeviceConfig, if not, simply bail
-		dcfg := &provisioner.DeviceConfig{}
-		if err := object.GetAspect(dcfg); err == nil {
-			log.Infof("Reconciler #%d is processing device %s...", workerID, object.ID)
-			if len(dcfg.PipelineConfigID) > 0 {
-				c.reconcilePipelineConfiguration(object, dcfg)
+		c.lock.Lock()
+
+		// Is this object being worked on already?
+		_, busy := c.workingOn[object.ID]
+		if !busy {
+			// If not, mark it as being worked on.
+			c.workingOn[object.ID] = object
+		}
+		c.lock.Unlock()
+		if !busy {
+			// Make sure that the config store contains configuration matching the DeviceConfig, if not, simply bail
+			dcfg := &provisioner.DeviceConfig{}
+			if err := object.GetAspect(dcfg); err == nil {
+				log.Infof("Reconciler #%d is processing device %s...", workerID, object.ID)
+				if len(dcfg.PipelineConfigID) > 0 {
+					c.reconcilePipelineConfiguration(object, dcfg)
+				}
+				if len(dcfg.ChassisConfigID) > 0 {
+					c.reconcileChassisConfiguration(object, dcfg)
+				}
 			}
-			if len(dcfg.ChassisConfigID) > 0 {
-				c.reconcileChassisConfiguration(object, dcfg)
-			}
+
+			// We're done working on this object
+			c.lock.Lock()
+			delete(c.workingOn, object.ID)
+			c.lock.Unlock()
 		}
 	}
 }
@@ -135,33 +151,48 @@ func (c *Controller) reconcilePipelineConfiguration(object *topoapi.Object, dcfg
 	// If the DeviceConfig matches PipelineConfigState and cookie is not 0, we're done.
 	pcState := &provisioner.PipelineConfigState{}
 	if err := object.GetAspect(pcState); err == nil {
-		if pcState.ConfigID == dcfg.PipelineConfigID {
+		if pcState.ConfigID == dcfg.PipelineConfigID && pcState.Cookie > 0 {
 			log.Infof("Pipeline configuration is up-to-date for %s", object.ID)
 			return
 		}
 	}
 
-	// Otherwise... get the config for the artifacts
-	artifacts, err := c.configStore.GetArtifacts(context.Background(), &provisioner.ConfigRecord{ConfigID: dcfg.PipelineConfigID})
+	// Otherwise... get the pipeline config
+	record, err := c.configStore.Get(context.Background(), dcfg.PipelineConfigID)
 	if err != nil {
+		log.Warnf("Unable to retrieve pipeline configuration for %s: %+v", dcfg.PipelineConfigID, err)
+		return
+	}
+
+	// ... and the associated artifacts
+	artifacts, err := c.configStore.GetArtifacts(context.Background(), record)
+	if err != nil || len(artifacts) < 2 {
+		log.Warnf("Unable to retrieve pipeline config artifacts for %s: %+v", dcfg.PipelineConfigID, err)
 		return
 	}
 
 	// Connect to device using P4Runtime
 	device, err := southbound.NewStratumDevice(object, provisionerRoleName)
 	if err != nil {
+		log.Warnf("Unable to create Stratum device descriptor for %s: %+v", object.ID, err)
+		return
+	}
+	if err = device.Connect(); err != nil {
+		log.Warnf("Unable to connect to Stratum device %s: %+v", object.ID, err)
 		return
 	}
 
 	// Run the reconciliation against the device
 	pcState.Cookie, err = device.ReconcilePipelineConfig(artifacts["p4info"], artifacts["p4bin"], pcState.Cookie)
 	if err != nil {
+		log.Warnf("Unable to create Stratum device descriptor for %s: %+v", object.ID, err)
 		return
 	}
 	_ = device.Disconnect()
 
 	// Update PipelineConfigState aspect
 	pcState.ConfigID = dcfg.PipelineConfigID
+	pcState.Updated = time.Now()
 	_ = c.updateObjectAspect(object, "pipeline", pcState)
 }
 
@@ -184,17 +215,24 @@ func (c *Controller) reconcileChassisConfiguration(object *topoapi.Object, dcfg 
 	// Issue Set request on the empty path
 	// Update ChassisConfigState aspect
 	ccState.ConfigID = dcfg.ChassisConfigID
+	ccState.Updated = time.Now()
 	_ = c.updateObjectAspect(object, "chassis", ccState)
 }
 
 func (c *Controller) updateObjectAspect(object *topoapi.Object, kind string, aspect proto.Message) error {
 	log.Infof("Updating %s configuration for %s", kind, object.ID)
-	if err := object.SetAspect(aspect); err != nil {
-		log.Warnf("Unable to set %s aspect for %s", kind, object.ID)
+	gresp, err := c.topoClient.Get(c.ctx, &topoapi.GetRequest{ID: object.ID})
+	if err != nil {
+		log.Warnf("Unable to get object %s: %+v", object.ID, err)
 		return err
 	}
-	if _, err := c.topoClient.Update(c.ctx, &topoapi.UpdateRequest{Object: object}); err != nil {
-		log.Warnf("Unable to update %s configuration for object %s", kind, object.ID)
+
+	if err = gresp.Object.SetAspect(aspect); err != nil {
+		log.Warnf("Unable to set %s aspect for %s: %+v", kind, object.ID, err)
+		return err
+	}
+	if _, err = c.topoClient.Update(c.ctx, &topoapi.UpdateRequest{Object: gresp.Object}); err != nil {
+		log.Warnf("Unable to update %s configuration for object %s: %+v", kind, object.ID, err)
 		return err
 	}
 	return nil

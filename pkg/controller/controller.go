@@ -57,6 +57,7 @@ type Controller struct {
 	ctx         context.Context
 	ctxCancel   context.CancelFunc
 	queue       chan *topoapi.Object
+	workingOn   map[topoapi.ID]*topoapi.Object
 }
 
 // NewController creates a new device provisioner controller
@@ -69,6 +70,7 @@ func NewController(realm string, configStore store.ConfigStore, topoAddress stri
 		configStore: configStore,
 		topoAddress: topoAddress,
 		topoOpts:    opts,
+		workingOn:   make(map[topoapi.ID]*topoapi.Object),
 	}
 }
 
