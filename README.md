@@ -1,5 +1,5 @@
 ![Build](https://github.com/onosproject/device-provisioner/workflows/build/badge.svg)
-![Coverage](https://img.shields.io/badge/Coverage-58.9%25-yellow)
+![Coverage](https://img.shields.io/badge/Coverage-54.5%25-yellow)
 
 
 <!--
