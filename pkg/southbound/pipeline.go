@@ -34,8 +34,8 @@ type StratumP4 struct {
 	roleName   string
 }
 
-// NewStratumDevice creates a new stratum device descriptor from the specified topo entity
-func NewStratumDevice(object *topoapi.Object, roleName string) (*StratumP4, error) {
+// NewStratumP4 creates a new stratum P4 device descriptor from the specified topo entity
+func NewStratumP4(object *topoapi.Object, roleName string) (*StratumP4, error) {
 	d := &StratumP4{
 		ID:       object.ID,
 		p4Server: &topoapi.P4RuntimeServer{},

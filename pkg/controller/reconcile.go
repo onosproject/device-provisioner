@@ -9,8 +9,10 @@ import (
 	"context"
 	"github.com/gogo/protobuf/proto"
 	"github.com/onosproject/device-provisioner/pkg/southbound"
+	"github.com/onosproject/device-provisioner/pkg/store"
 	"github.com/onosproject/onos-api/go/onos/provisioner"
 	topoapi "github.com/onosproject/onos-api/go/onos/topo"
+	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"io"
 	"time"
 )
@@ -157,22 +159,14 @@ func (c *Controller) reconcilePipelineConfiguration(object *topoapi.Object, dcfg
 		}
 	}
 
-	// Otherwise... get the pipeline config
-	record, err := c.configStore.Get(context.Background(), dcfg.PipelineConfigID)
+	// Otherwise... get the pipeline config artifacts
+	artifacts, err := c.getArtifacts(dcfg.PipelineConfigID, 2)
 	if err != nil {
-		log.Warnf("Unable to retrieve pipeline configuration for %s: %+v", dcfg.PipelineConfigID, err)
-		return
-	}
-
-	// ... and the associated artifacts
-	artifacts, err := c.configStore.GetArtifacts(context.Background(), record)
-	if err != nil || len(artifacts) < 2 {
-		log.Warnf("Unable to retrieve pipeline config artifacts for %s: %+v", dcfg.PipelineConfigID, err)
 		return
 	}
 
 	// Connect to device using P4Runtime
-	device, err := southbound.NewStratumDevice(object, provisionerRoleName)
+	device, err := southbound.NewStratumP4(object, provisionerRoleName)
 	if err != nil {
 		log.Warnf("Unable to create Stratum device descriptor for %s: %+v", object.ID, err)
 		return
@@ -209,7 +203,12 @@ func (c *Controller) reconcileChassisConfiguration(object *topoapi.Object, dcfg 
 		}
 	}
 
-	// Otherwise...
+	// Otherwise... get chassis configuration artifact
+	_, err := c.getArtifacts(dcfg.ChassisConfigID, 1)
+	if err != nil {
+		return
+	}
+	// TODO: Implement gNMI SB
 
 	// Connect to the device using gNMI
 	// Issue Set request on the empty path
@@ -219,6 +218,30 @@ func (c *Controller) reconcileChassisConfiguration(object *topoapi.Object, dcfg 
 	_ = c.updateObjectAspect(object, "chassis", ccState)
 }
 
+// Retrieves the required configuration artifacts from the store
+func (c *Controller) getArtifacts(configID provisioner.ConfigID, expectedNumber int) (store.Artifacts, error) {
+	record, err := c.configStore.Get(context.Background(), configID)
+	if err != nil {
+		log.Warnf("Unable to retrieve pipeline configuration for %s: %+v", configID, err)
+		return nil, err
+	}
+
+	// ... and the associated artifacts
+	artifacts, err := c.configStore.GetArtifacts(context.Background(), record)
+	if err != nil {
+		log.Warnf("Unable to retrieve pipeline config artifacts for %s: %+v", configID, err)
+		return nil, err
+	}
+
+	// Make sure the number of artifacts is sufficient
+	if len(artifacts) < expectedNumber {
+		log.Warnf("Insufficient number of config artifacts found: %d", len(artifacts))
+		return nil, errors.NewInvalid("Insufficient number of config artifacts found")
+	}
+	return artifacts, err
+}
+
+// Update the topo object with the specified configuration aspect
 func (c *Controller) updateObjectAspect(object *topoapi.Object, kind string, aspect proto.Message) error {
 	log.Infof("Updating %s configuration for %s", kind, object.ID)
 	gresp, err := c.topoClient.Get(c.ctx, &topoapi.GetRequest{ID: object.ID})
