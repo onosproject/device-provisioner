@@ -15,7 +15,8 @@ import (
 var log = logging.GetLogger()
 
 const (
-	realmFlag          = "realm"
+	realmLabelFlag     = "realm-label"
+	realmValueFlag     = "realm-value"
 	topoAddressFlag    = "topo-address"
 	defaultTopoAddress = "onos-topo:5150"
 	artifactDirFlag    = "artifact-dir"
@@ -28,7 +29,8 @@ func main() {
 		Use:  "device-provisioner",
 		RunE: runRootCommand,
 	}
-	cmd.Flags().String(realmFlag, "all", "realm of devices over which the provisioner should operate")
+	cmd.Flags().String(realmLabelFlag, "pod", "label used to define the realm of devices over which the provisioner should operate")
+	cmd.Flags().String(realmValueFlag, "all", "value of the realm label of devices over which the provisioner should operate")
 	cmd.Flags().String(topoAddressFlag, defaultTopoAddress, "address:port or just :port of the onos-topo service")
 	cmd.Flags().String(artifactDirFlag, defaultArtifactDir, "directory where artifact files are maintained")
 	cli.AddServiceEndpointFlags(cmd, "provisioner gRPC")
@@ -36,7 +38,8 @@ func main() {
 }
 
 func runRootCommand(cmd *cobra.Command, args []string) error {
-	realm, _ := cmd.Flags().GetString(realmFlag)
+	realmLabel, _ := cmd.Flags().GetString(realmLabelFlag)
+	realmValue, _ := cmd.Flags().GetString(realmValueFlag)
 	topoAddress, _ := cmd.Flags().GetString(topoAddressFlag)
 	artifactDir, _ := cmd.Flags().GetString(artifactDirFlag)
 
@@ -47,7 +50,8 @@ func runRootCommand(cmd *cobra.Command, args []string) error {
 
 	log.Infof("Starting device-provisioner")
 	cfg := manager.Config{
-		Realm:        realm,
+		RealmLabel:   realmLabel,
+		RealmValue:   realmValue,
 		TopoAddress:  topoAddress,
 		ArtifactDir:  artifactDir,
 		ServiceFlags: flags,

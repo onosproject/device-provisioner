@@ -20,7 +20,8 @@ var log = logging.GetLogger("manager")
 
 // Config is a manager configuration
 type Config struct {
-	Realm        string
+	RealmLabel   string
+	RealmValue   string
 	TopoAddress  string
 	ArtifactDir  string
 	ServiceFlags *cli.ServiceEndpointFlags
@@ -55,7 +56,7 @@ func (m *Manager) Start() error {
 		return err
 	}
 
-	m.controller = controller.NewController(m.Config.Realm, m.configStore, m.Config.TopoAddress, opts...)
+	m.controller = controller.NewController(m.Config.RealmLabel, m.Config.RealmValue, m.configStore, m.Config.TopoAddress, opts...)
 	m.controller.Start()
 
 	// Start NB server
