@@ -36,7 +36,8 @@ func (c *Controller) runInitialReconciliationSweep() {
 // Runs reconciliation sweep for all objects in our realm
 func (c *Controller) runFullReconciliationSweep() error {
 	log.Info("Starting full reconciliation sweep...")
-	if entities, err := c.topoClient.Query(c.ctx, &topoapi.QueryRequest{Filters: queryFilter(c.realm)}); err == nil {
+	filter := queryFilter(c.realmLabel, c.realmValue)
+	if entities, err := c.topoClient.Query(c.ctx, &topoapi.QueryRequest{Filters: filter}); err == nil {
 		for c.getState() != Stopped {
 			if entity, err := entities.Recv(); err == nil {
 				c.queue <- entity.Object
@@ -56,11 +57,11 @@ func (c *Controller) runFullReconciliationSweep() error {
 }
 
 // Returns filters for matching objects on realm label, entity type and with DeviceConfig aspect.
-func queryFilter(realm string) *topoapi.Filters {
+func queryFilter(realmLabel string, realmValue string) *topoapi.Filters {
 	return &topoapi.Filters{
 		LabelFilters: []*topoapi.Filter{{
-			Filter: &topoapi.Filter_Equal_{Equal_: &topoapi.EqualFilter{Value: realm}},
-			Key:    "pod", // TODO: make this configurable to allow racks, etc.
+			Filter: &topoapi.Filter_Equal_{Equal_: &topoapi.EqualFilter{Value: realmValue}},
+			Key:    realmLabel,
 		}},
 		ObjectTypes: []topoapi.Object_Type{topoapi.Object_ENTITY},
 		WithAspects: []string{"onos.provisioner.DeviceConfig"},
@@ -69,7 +70,7 @@ func queryFilter(realm string) *topoapi.Filters {
 
 // Setup watch for updates using onos-topo API
 func (c *Controller) prepareForMonitoring() {
-	filter := queryFilter(c.realm)
+	filter := queryFilter(c.realmLabel, c.realmValue)
 	log.Infof("Starting to watch onos-topo via %+v", filter)
 	stream, err := c.topoClient.Watch(c.ctx, &topoapi.WatchRequest{Filters: filter})
 	if err != nil {

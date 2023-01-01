@@ -44,8 +44,9 @@ const (
 
 // Controller drives the device provisioning control logic
 type Controller struct {
-	realm string
-	state State
+	realmLabel string
+	realmValue string
+	state      State
 
 	lock        sync.RWMutex
 	configStore store.ConfigStore
@@ -61,12 +62,13 @@ type Controller struct {
 }
 
 // NewController creates a new device provisioner controller
-func NewController(realm string, configStore store.ConfigStore, topoAddress string, topoOpts ...grpc.DialOption) *Controller {
+func NewController(realmLabel string, realmValue string, configStore store.ConfigStore, topoAddress string, topoOpts ...grpc.DialOption) *Controller {
 	opts := append(topoOpts,
 		grpc.WithStreamInterceptor(retry.RetryingStreamClientInterceptor(retry.WithRetryOn(codes.Unavailable, codes.Unknown))),
 		grpc.WithUnaryInterceptor(retry.RetryingUnaryClientInterceptor(retry.WithRetryOn(codes.Unavailable, codes.Unknown))))
 	return &Controller{
-		realm:       realm,
+		realmLabel:  realmLabel,
+		realmValue:  realmValue,
 		configStore: configStore,
 		topoAddress: topoAddress,
 		topoOpts:    opts,
