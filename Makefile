@@ -42,7 +42,7 @@ device-provisioner-docker:  # @HELP build device-provisioner base Docker image
 		-t ${DOCKER_REPOSITORY}device-provisioner:${DEVICE_PROVISIONER_VERSION}
 
 images: # @HELP build all Docker images
-images: device-provisioner-docker
+images: mod-update device-provisioner-docker
 
 docker-push-latest: docker-login
 	docker push onosproject/device-provisioner:latest
