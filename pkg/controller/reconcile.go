@@ -173,14 +173,14 @@ func (c *Controller) reconcilePipelineConfiguration(object *topoapi.Object, dcfg
 		return
 	}
 	if err = device.Connect(); err != nil {
-		log.Warnf("Unable to connect to Stratum device %s: %+v", object.ID, err)
+		log.Warnf("Unable to connect to Stratum device P4Runtime %s: %+v", object.ID, err)
 		return
 	}
 
 	// Run the reconciliation against the device
-	pcState.Cookie, err = device.ReconcilePipelineConfig(artifacts["p4info"], artifacts["p4bin"], pcState.Cookie)
+	pcState.Cookie, err = device.ReconcilePipelineConfig(artifacts[provisioner.P4InfoType], artifacts[provisioner.P4BinaryType], pcState.Cookie)
 	if err != nil {
-		log.Warnf("Unable to create Stratum device descriptor for %s: %+v", object.ID, err)
+		log.Warnf("Unable to reconcile Stratum P4Runtime pipeline config for %s: %+v", object.ID, err)
 		return
 	}
 	_ = device.Disconnect()
@@ -205,14 +205,30 @@ func (c *Controller) reconcileChassisConfiguration(object *topoapi.Object, dcfg 
 	}
 
 	// Otherwise... get chassis configuration artifact
-	_, err := c.getArtifacts(dcfg.ChassisConfigID, 1)
+	artifacts, err := c.getArtifacts(dcfg.ChassisConfigID, 1)
 	if err != nil {
 		return
 	}
-	// TODO: Implement gNMI SB
 
 	// Connect to the device using gNMI
+	device, err := southbound.NewStratumGNMI(object)
+	if err != nil {
+		log.Warnf("Unable to create Stratum gNMI device descriptor for %s: %+v", object.ID, err)
+		return
+	}
+	if err = device.Connect(); err != nil {
+		log.Warnf("Unable to connect to Stratum device gNMI %s: %+v", object.ID, err)
+		return
+	}
+
 	// Issue Set request on the empty path
+	err = device.SetChassisConfig(artifacts[provisioner.ChassisType])
+	if err != nil {
+		log.Warnf("Unable to apply Stratum gNMI chassis config for %s: %+v", object.ID, err)
+		return
+	}
+	_ = device.Disconnect()
+
 	// Update ChassisConfigState aspect
 	ccState.ConfigID = dcfg.ChassisConfigID
 	ccState.Updated = time.Now()
