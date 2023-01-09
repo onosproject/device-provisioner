@@ -27,7 +27,7 @@ type StratumP4 struct {
 	ID         topoapi.ID
 	p4Server   *topoapi.P4RuntimeServer
 	conn       *grpc.ClientConn
-	p4Client   p4api.P4RuntimeClient
+	client     p4api.P4RuntimeClient
 	stream     p4api.P4Runtime_StreamChannelClient
 	electionID *p4api.Uint128
 	ctx        context.Context
@@ -47,9 +47,9 @@ func NewStratumP4(object *topoapi.Object, roleName string) (*StratumP4, error) {
 	return d, nil
 }
 
-// Connect establishes
+// Connect establishes connection to the P4Runtime server
 func (d *StratumP4) Connect() error {
-	log.Infof("%s: connecting...", d.ID)
+	log.Infof("%s: connecting to P4Runtime server...", d.ID)
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()), // TODO: Deal with secrets
 	}
@@ -61,11 +61,11 @@ func (d *StratumP4) Connect() error {
 		return err
 	}
 
-	d.p4Client = p4api.NewP4RuntimeClient(d.conn)
+	d.client = p4api.NewP4RuntimeClient(d.conn)
 	d.ctx = context.Background()
 
 	// Establish stream and issue mastership
-	if d.stream, err = d.p4Client.StreamChannel(d.ctx); err != nil {
+	if d.stream, err = d.client.StreamChannel(d.ctx); err != nil {
 		return err
 	}
 
@@ -87,20 +87,20 @@ func (d *StratumP4) Connect() error {
 		return errors.NewInvalid("%s: did not win election", d.ID)
 	}
 
-	log.Infof("%s: connected", d.ID)
+	log.Infof("%s: connected to P4Runtime server", d.ID)
 	return nil
 }
 
 // Disconnect terminates the P4 message stream
 func (d *StratumP4) Disconnect() error {
-	return nil
+	return d.conn.Close()
 }
 
 // ReconcilePipelineConfig makes sure that the device has the given P4 pipeline configuration applied
 func (d *StratumP4) ReconcilePipelineConfig(info []byte, binary []byte, cookie uint64) (uint64, error) {
 	log.Infof("%s: configuring pipeline...", d.ID)
 	// ask for the pipeline config cookie
-	gr, err := d.p4Client.GetForwardingPipelineConfig(d.ctx, &p4api.GetForwardingPipelineConfigRequest{
+	gr, err := d.client.GetForwardingPipelineConfig(d.ctx, &p4api.GetForwardingPipelineConfigRequest{
 		DeviceId:     d.p4Server.DeviceID,
 		ResponseType: p4api.GetForwardingPipelineConfigRequest_COOKIE_ONLY,
 	})
@@ -121,7 +121,7 @@ func (d *StratumP4) ReconcilePipelineConfig(info []byte, binary []byte, cookie u
 
 	// and then apply it to the device
 	newCookie := uint64(time.Now().UnixNano())
-	_, err = d.p4Client.SetForwardingPipelineConfig(d.ctx, &p4api.SetForwardingPipelineConfigRequest{
+	_, err = d.client.SetForwardingPipelineConfig(d.ctx, &p4api.SetForwardingPipelineConfigRequest{
 		DeviceId:   d.p4Server.DeviceID,
 		Role:       d.roleName,
 		ElectionId: d.electionID,

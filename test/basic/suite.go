@@ -6,9 +6,11 @@
 package basic
 
 import (
+	fsimtopo "github.com/onosproject/fabric-sim/pkg/topo"
 	"github.com/onosproject/helmit/pkg/helm"
 	"github.com/onosproject/helmit/pkg/input"
 	"github.com/onosproject/helmit/pkg/test"
+	libtest "github.com/onosproject/onos-lib-go/pkg/test"
 	"github.com/onosproject/onos-test/pkg/onostest"
 )
 
@@ -56,5 +58,16 @@ func (s *TestSuite) SetupTestSuite(c *input.Context) error {
 	if err != nil {
 		return err
 	}
+
+	fsimConn, err := libtest.CreateConnection("fabric-sim:5150", true)
+	if err != nil {
+		return err
+	}
+
+	err = fsimtopo.LoadTopology(fsimConn, "./test/basic/topo.yaml")
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

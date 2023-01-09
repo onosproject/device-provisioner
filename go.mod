@@ -12,6 +12,7 @@ require (
 	github.com/onosproject/onos-lib-go v0.10.5
 	github.com/onosproject/onos-net-lib v0.1.12
 	github.com/onosproject/onos-test v0.6.6
+	github.com/openconfig/gnmi v0.0.0-20220920173703-480bf53a74d2
 	github.com/p4lang/p4runtime v1.4.0-rc.5
 	github.com/spf13/cobra v1.5.0
 	github.com/stretchr/testify v1.8.0
