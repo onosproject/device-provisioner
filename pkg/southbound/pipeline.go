@@ -8,7 +8,7 @@ package southbound
 import (
 	"context"
 	"fmt"
-	topoapi "github.com/onosproject/onos-api/go/onos/topo"
+	"github.com/onosproject/onos-api/go/onos/topo"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-net-lib/pkg/p4utils"
@@ -24,8 +24,8 @@ var log = logging.GetLogger("southbound")
 
 // StratumP4 is ab abstraction of a device with P4Runtime endpoint
 type StratumP4 struct {
-	ID         topoapi.ID
-	p4Server   *topoapi.P4RuntimeServer
+	ID         topo.ID
+	p4Server   *topo.P4RuntimeServer
 	conn       *grpc.ClientConn
 	client     p4api.P4RuntimeClient
 	stream     p4api.P4Runtime_StreamChannelClient
@@ -35,10 +35,10 @@ type StratumP4 struct {
 }
 
 // NewStratumP4 creates a new stratum P4 device descriptor from the specified topo entity
-func NewStratumP4(object *topoapi.Object, roleName string) (*StratumP4, error) {
+func NewStratumP4(object *topo.Object, roleName string) (*StratumP4, error) {
 	d := &StratumP4{
 		ID:       object.ID,
-		p4Server: &topoapi.P4RuntimeServer{},
+		p4Server: &topo.P4RuntimeServer{},
 		roleName: roleName,
 	}
 	if err := object.GetAspect(d.p4Server); err != nil {

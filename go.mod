@@ -4,13 +4,12 @@ go 1.19
 
 require (
 	github.com/atomix/go-sdk v0.10.0
-	github.com/atomix/runtime/sdk v0.7.4
 	github.com/gogo/protobuf v1.3.2
 	github.com/onosproject/fabric-sim v0.1.19
 	github.com/onosproject/helmit v0.6.20
 	github.com/onosproject/onos-api/go v0.10.12
 	github.com/onosproject/onos-lib-go v0.10.5
-	github.com/onosproject/onos-net-lib v0.1.12
+	github.com/onosproject/onos-net-lib v0.1.7
 	github.com/onosproject/onos-test v0.6.6
 	github.com/openconfig/gnmi v0.0.0-20220920173703-480bf53a74d2
 	github.com/p4lang/p4runtime v1.4.0-rc.5
@@ -37,6 +36,7 @@ require (
 	github.com/atomix/runtime/api v0.7.0 // indirect
 	github.com/atomix/runtime/primitives v0.7.2 // indirect
 	github.com/atomix/runtime/proxy v0.10.0 // indirect
+	github.com/atomix/runtime/sdk v0.7.4 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bits-and-blooms/bitset v1.2.0 // indirect
 	github.com/bits-and-blooms/bloom/v3 v3.2.0 // indirect
