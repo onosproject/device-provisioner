@@ -22,6 +22,8 @@ import (
 
 var log = logging.GetLogger("southbound")
 
+// TODO: Extract this to onos-net-lib at some point; with appropriate generalizations of course
+
 // StratumP4 is ab abstraction of a device with P4Runtime endpoint
 type StratumP4 struct {
 	ID         topo.ID

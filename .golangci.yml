@@ -23,3 +23,4 @@ issues:
     - Error return value of `.*Flush` is not checked
     - Error return value of `.*Write` is not checked
     - Error return value of `.*Stop` is not checked
+    - Error return value of `.*Disconnect` is not checked

@@ -210,24 +210,12 @@ func (c *Controller) reconcileChassisConfiguration(object *topo.Object, dcfg *pr
 		return
 	}
 
-	// Connect to the device using gNMI
-	device, err := southbound.NewStratumGNMI(object)
-	if err != nil {
-		log.Warnf("Unable to create Stratum gNMI device descriptor for %s: %+v", object.ID, err)
-		return
-	}
-	if err = device.Connect(); err != nil {
-		log.Warnf("Unable to connect to Stratum device gNMI %s: %+v", object.ID, err)
-		return
-	}
-
-	// Issue Set request on the empty path
-	err = device.SetChassisConfig(artifacts[provisioner.ChassisType])
+	// ... and apply the chassis configuration to the device using gNMI
+	err = southbound.SetChassisConfig(object, artifacts[provisioner.ChassisType])
 	if err != nil {
 		log.Warnf("Unable to apply Stratum gNMI chassis config for %s: %+v", object.ID, err)
 		return
 	}
-	_ = device.Disconnect()
 
 	// Update ChassisConfigState aspect
 	ccState.ConfigID = dcfg.ChassisConfigID
