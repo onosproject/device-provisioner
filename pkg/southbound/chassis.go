@@ -7,7 +7,7 @@ package southbound
 import (
 	"context"
 	"fmt"
-	topoapi "github.com/onosproject/onos-api/go/onos/topo"
+	"github.com/onosproject/onos-api/go/onos/topo"
 	utils "github.com/onosproject/onos-net-lib/pkg/gnmiutils"
 	"github.com/openconfig/gnmi/proto/gnmi"
 	"google.golang.org/grpc"
@@ -16,18 +16,18 @@ import (
 
 // StratumGNMI is ab abstraction of a device with gNMI endpoint
 type StratumGNMI struct {
-	ID         topoapi.ID
-	gnmiServer *topoapi.GNMIServer
+	ID         topo.ID
+	gnmiServer *topo.GNMIServer
 	conn       *grpc.ClientConn
 	client     gnmi.GNMIClient
 	ctx        context.Context
 }
 
 // NewStratumGNMI creates a new stratum gNMI device descriptor from the specified topo entity
-func NewStratumGNMI(object *topoapi.Object) (*StratumGNMI, error) {
+func NewStratumGNMI(object *topo.Object) (*StratumGNMI, error) {
 	d := &StratumGNMI{
 		ID:         object.ID,
-		gnmiServer: &topoapi.GNMIServer{},
+		gnmiServer: &topo.GNMIServer{},
 	}
 	if err := object.GetAspect(d.gnmiServer); err != nil {
 		return nil, err

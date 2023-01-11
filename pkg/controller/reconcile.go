@@ -11,7 +11,7 @@ import (
 	"github.com/onosproject/device-provisioner/pkg/southbound"
 	"github.com/onosproject/device-provisioner/pkg/store"
 	"github.com/onosproject/onos-api/go/onos/provisioner"
-	topoapi "github.com/onosproject/onos-api/go/onos/topo"
+	"github.com/onosproject/onos-api/go/onos/topo"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"io"
 	"time"
@@ -37,7 +37,7 @@ func (c *Controller) runInitialReconciliationSweep() {
 func (c *Controller) runFullReconciliationSweep() error {
 	log.Info("Starting full reconciliation sweep...")
 	filter := queryFilter(c.realmLabel, c.realmValue)
-	if entities, err := c.topoClient.Query(c.ctx, &topoapi.QueryRequest{Filters: filter}); err == nil {
+	if entities, err := c.topoClient.Query(c.ctx, &topo.QueryRequest{Filters: filter}); err == nil {
 		for c.getState() != Stopped {
 			if entity, err := entities.Recv(); err == nil {
 				c.queue <- entity.Object
@@ -57,13 +57,13 @@ func (c *Controller) runFullReconciliationSweep() error {
 }
 
 // Returns filters for matching objects on realm label, entity type and with DeviceConfig aspect.
-func queryFilter(realmLabel string, realmValue string) *topoapi.Filters {
-	return &topoapi.Filters{
-		LabelFilters: []*topoapi.Filter{{
-			Filter: &topoapi.Filter_Equal_{Equal_: &topoapi.EqualFilter{Value: realmValue}},
+func queryFilter(realmLabel string, realmValue string) *topo.Filters {
+	return &topo.Filters{
+		LabelFilters: []*topo.Filter{{
+			Filter: &topo.Filter_Equal_{Equal_: &topo.EqualFilter{Value: realmValue}},
 			Key:    realmLabel,
 		}},
-		ObjectTypes: []topoapi.Object_Type{topoapi.Object_ENTITY},
+		ObjectTypes: []topo.Object_Type{topo.Object_ENTITY},
 		WithAspects: []string{"onos.provisioner.DeviceConfig"},
 	}
 }
@@ -72,7 +72,7 @@ func queryFilter(realmLabel string, realmValue string) *topoapi.Filters {
 func (c *Controller) prepareForMonitoring() {
 	filter := queryFilter(c.realmLabel, c.realmValue)
 	log.Infof("Starting to watch onos-topo via %+v", filter)
-	stream, err := c.topoClient.Watch(c.ctx, &topoapi.WatchRequest{Filters: filter})
+	stream, err := c.topoClient.Watch(c.ctx, &topo.WatchRequest{Filters: filter})
 	if err != nil {
 		log.Warnf("Unable to start onos-topo watch: %+v", err)
 		c.setState(Disconnected)
@@ -93,8 +93,8 @@ func (c *Controller) prepareForMonitoring() {
 }
 
 // Returns true if the object is relevant to the reconciler
-func isRelevant(event topoapi.Event) bool {
-	return event.Type != topoapi.EventType_REMOVED
+func isRelevant(event topo.Event) bool {
+	return event.Type != topo.EventType_REMOVED
 }
 
 // Handles processing for the Monitoring state
@@ -148,7 +148,7 @@ func (c *Controller) reconcile(workerID int) {
 }
 
 // Runs pipeline configuration reconciliation logic
-func (c *Controller) reconcilePipelineConfiguration(object *topoapi.Object, dcfg *provisioner.DeviceConfig) {
+func (c *Controller) reconcilePipelineConfiguration(object *topo.Object, dcfg *provisioner.DeviceConfig) {
 	log.Infof("Reconciling pipeline configuration for %s...", object.ID)
 
 	// If the DeviceConfig matches PipelineConfigState and cookie is not 0, we're done.
@@ -192,7 +192,7 @@ func (c *Controller) reconcilePipelineConfiguration(object *topoapi.Object, dcfg
 }
 
 // Runs chassis configuration reconciliation logic
-func (c *Controller) reconcileChassisConfiguration(object *topoapi.Object, dcfg *provisioner.DeviceConfig) {
+func (c *Controller) reconcileChassisConfiguration(object *topo.Object, dcfg *provisioner.DeviceConfig) {
 	log.Infof("Reconciling chassis configuration for %s...", object.ID)
 
 	// If the DeviceConfig matches ChassisConfigState, we're done
@@ -259,9 +259,9 @@ func (c *Controller) getArtifacts(configID provisioner.ConfigID, expectedNumber 
 }
 
 // Update the topo object with the specified configuration aspect
-func (c *Controller) updateObjectAspect(object *topoapi.Object, kind string, aspect proto.Message) error {
+func (c *Controller) updateObjectAspect(object *topo.Object, kind string, aspect proto.Message) error {
 	log.Infof("Updating %s configuration for %s", kind, object.ID)
-	gresp, err := c.topoClient.Get(c.ctx, &topoapi.GetRequest{ID: object.ID})
+	gresp, err := c.topoClient.Get(c.ctx, &topo.GetRequest{ID: object.ID})
 	if err != nil {
 		log.Warnf("Unable to get object %s: %+v", object.ID, err)
 		return err
@@ -271,7 +271,7 @@ func (c *Controller) updateObjectAspect(object *topoapi.Object, kind string, asp
 		log.Warnf("Unable to set %s aspect for %s: %+v", kind, object.ID, err)
 		return err
 	}
-	if _, err = c.topoClient.Update(c.ctx, &topoapi.UpdateRequest{Object: gresp.Object}); err != nil {
+	if _, err = c.topoClient.Update(c.ctx, &topo.UpdateRequest{Object: gresp.Object}); err != nil {
 		log.Warnf("Unable to update %s configuration for object %s: %+v", kind, object.ID, err)
 		return err
 	}

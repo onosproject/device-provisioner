@@ -7,12 +7,10 @@ package controller
 
 import (
 	"context"
-	"github.com/atomix/runtime/sdk/pkg/grpc/retry"
 	"github.com/onosproject/device-provisioner/pkg/store"
-	topoapi "github.com/onosproject/onos-api/go/onos/topo"
+	"github.com/onosproject/onos-api/go/onos/topo"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/codes"
 	"sync"
 	"time"
 )
@@ -54,25 +52,23 @@ type Controller struct {
 	topoAddress string
 	topoOpts    []grpc.DialOption
 	conn        *grpc.ClientConn
-	topoClient  topoapi.TopoClient
+	topoClient  topo.TopoClient
 	ctx         context.Context
 	ctxCancel   context.CancelFunc
-	queue       chan *topoapi.Object
-	workingOn   map[topoapi.ID]*topoapi.Object
+	queue       chan *topo.Object
+	workingOn   map[topo.ID]*topo.Object
 }
 
 // NewController creates a new device provisioner controller
 func NewController(realmLabel string, realmValue string, configStore store.ConfigStore, topoAddress string, topoOpts ...grpc.DialOption) *Controller {
-	opts := append(topoOpts,
-		grpc.WithStreamInterceptor(retry.RetryingStreamClientInterceptor(retry.WithRetryOn(codes.Unavailable, codes.Unknown))),
-		grpc.WithUnaryInterceptor(retry.RetryingUnaryClientInterceptor(retry.WithRetryOn(codes.Unavailable, codes.Unknown))))
+	opts := append(topoOpts, grpc.WithBlock())
 	return &Controller{
 		realmLabel:  realmLabel,
 		realmValue:  realmValue,
 		configStore: configStore,
 		topoAddress: topoAddress,
 		topoOpts:    opts,
-		workingOn:   make(map[topoapi.ID]*topoapi.Object),
+		workingOn:   make(map[topo.ID]*topo.Object),
 	}
 }
 
@@ -81,7 +77,7 @@ func (c *Controller) Start() {
 	log.Infof("Starting...")
 
 	// Crate reconciliation job queue and workers
-	c.queue = make(chan *topoapi.Object, queueDepth)
+	c.queue = make(chan *topo.Object, queueDepth)
 	for i := 0; i < workerCount; i++ {
 		go c.reconcile(i)
 	}
@@ -151,7 +147,7 @@ func (c *Controller) waitForTopoConnection() {
 	for c.getState() == Disconnected {
 		if conn, err := grpc.DialContext(context.Background(), c.topoAddress, c.topoOpts...); err == nil {
 			c.conn = conn
-			c.topoClient = topoapi.CreateTopoClient(conn)
+			c.topoClient = topo.CreateTopoClient(conn)
 			c.ctx, c.ctxCancel = context.WithCancel(context.Background())
 			c.setState(Connected)
 			log.Infof("Connected")

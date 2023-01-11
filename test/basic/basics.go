@@ -9,7 +9,7 @@ import (
 	fsimtest "github.com/onosproject/fabric-sim/test/client"
 	fsimapi "github.com/onosproject/onos-api/go/onos/fabricsim"
 	"github.com/onosproject/onos-api/go/onos/provisioner"
-	topoapi "github.com/onosproject/onos-api/go/onos/topo"
+	"github.com/onosproject/onos-api/go/onos/topo"
 	libtest "github.com/onosproject/onos-lib-go/pkg/test"
 	utils "github.com/onosproject/onos-net-lib/pkg/gnmiutils"
 	"github.com/openconfig/gnmi/proto/gnmi"
@@ -54,16 +54,16 @@ func (s *TestSuite) TestPipelineBasics(t *testing.T) {
 	assert.True(t, len(slurp(stream)) >= 1)
 
 	// Create topo object for our topology with device config aspect
-	object := &topoapi.Object{
+	object := &topo.Object{
 		ID:   "spine1",
-		Type: topoapi.Object_ENTITY,
-		Obj: &topoapi.Object_Entity{Entity: &topoapi.Entity{
+		Type: topo.Object_ENTITY,
+		Obj: &topo.Object_Entity{Entity: &topo.Entity{
 			KindID: "switch",
 		}},
 		Labels: map[string]string{"pod": "all"},
 	}
-	err = object.SetAspect(&topoapi.P4RuntimeServer{
-		Endpoint: &topoapi.Endpoint{
+	err = object.SetAspect(&topo.P4RuntimeServer{
+		Endpoint: &topo.Endpoint{
 			Address: "fabric-sim",
 			Port:    20000,
 		},
@@ -75,13 +75,13 @@ func (s *TestSuite) TestPipelineBasics(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	_, err = topoClient.Create(ctx, &topoapi.CreateRequest{Object: object})
+	_, err = topoClient.Create(ctx, &topo.CreateRequest{Object: object})
 	assert.NoError(t, err)
 
 	time.Sleep(5 * time.Second)
 
 	// Validate that the pipeline config got set on the topology object
-	gresp, err := topoClient.Get(ctx, &topoapi.GetRequest{ID: "spine1"})
+	gresp, err := topoClient.Get(ctx, &topo.GetRequest{ID: "spine1"})
 	assert.NoError(t, err)
 
 	pcState := &provisioner.PipelineConfigState{}
@@ -133,16 +133,16 @@ func (s *TestSuite) TestChassisBasics(t *testing.T) {
 	assert.True(t, len(slurp(stream)) >= 1)
 
 	// Create topo object for our topology with device config aspect
-	object := &topoapi.Object{
+	object := &topo.Object{
 		ID:   "spine2",
-		Type: topoapi.Object_ENTITY,
-		Obj: &topoapi.Object_Entity{Entity: &topoapi.Entity{
+		Type: topo.Object_ENTITY,
+		Obj: &topo.Object_Entity{Entity: &topo.Entity{
 			KindID: "switch",
 		}},
 		Labels: map[string]string{"pod": "all"},
 	}
-	err = object.SetAspect(&topoapi.GNMIServer{
-		Endpoint: &topoapi.Endpoint{
+	err = object.SetAspect(&topo.GNMIServer{
+		Endpoint: &topo.Endpoint{
 			Address: "fabric-sim",
 			Port:    20001,
 		},
@@ -154,13 +154,13 @@ func (s *TestSuite) TestChassisBasics(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	_, err = topoClient.Create(ctx, &topoapi.CreateRequest{Object: object})
+	_, err = topoClient.Create(ctx, &topo.CreateRequest{Object: object})
 	assert.NoError(t, err)
 
 	time.Sleep(5 * time.Second)
 
 	// Validate that the chassis config got set on the topology object
-	gresp, err := topoClient.Get(ctx, &topoapi.GetRequest{ID: "spine2"})
+	gresp, err := topoClient.Get(ctx, &topo.GetRequest{ID: "spine2"})
 	assert.NoError(t, err)
 
 	ccState := &provisioner.ChassisConfigState{}
@@ -196,14 +196,14 @@ func slurp(stream provisioner.ProvisionerService_ListClient) []*provisioner.Conf
 	}
 }
 
-func getConnections(t *testing.T) (topoapi.TopoClient, provisioner.ProvisionerServiceClient) {
+func getConnections(t *testing.T) (topo.TopoClient, provisioner.ProvisionerServiceClient) {
 	topoConn, err := libtest.CreateConnection("onos-topo:5150", false)
 	assert.NoError(t, err)
 
 	provConn, err := libtest.CreateConnection("device-provisioner:5150", false)
 	assert.NoError(t, err)
 
-	topoClient := topoapi.NewTopoClient(topoConn)
+	topoClient := topo.NewTopoClient(topoConn)
 	assert.NotNil(t, topoClient)
 	provClient := provisioner.NewProvisionerServiceClient(provConn)
 	return topoClient, provClient
