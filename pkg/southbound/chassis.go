@@ -14,7 +14,7 @@ import (
 // SetChassisConfig sets the chassis configuration on the device via gNMI
 func SetChassisConfig(object *topo.Object, config []byte) error {
 	// Connect to the device using gNMI
-	device, err := stratum.NewGNMI(object, true)
+	device, err := stratum.NewStratumGNMI(object, true)
 	if err != nil {
 		log.Warnf("Unable to connect to Stratum device gNMI %s: %+v", object.ID, err)
 		return err
