@@ -26,25 +26,28 @@ var log = logging.GetLogger("southbound")
 
 // StratumP4 is ab abstraction of a device with P4Runtime endpoint
 type StratumP4 struct {
-	ID         topo.ID
-	p4Server   *topo.P4RuntimeServer
+	ID         string
+	DeviceID   uint64
+	ElectionID *p4api.Uint128
+	Context    context.Context
+	RoleName   string
+	endpoint   *topo.Endpoint
 	conn       *grpc.ClientConn
 	client     p4api.P4RuntimeClient
 	stream     p4api.P4Runtime_StreamChannelClient
-	electionID *p4api.Uint128
-	ctx        context.Context
-	roleName   string
 }
 
 // NewStratumP4 creates a new stratum P4 device descriptor from the specified topo entity
 func NewStratumP4(object *topo.Object, roleName string) (*StratumP4, error) {
-	d := &StratumP4{
-		ID:       object.ID,
-		p4Server: &topo.P4RuntimeServer{},
-		roleName: roleName,
-	}
-	if err := object.GetAspect(d.p4Server); err != nil {
+	stratumAgents := &topo.StratumAgents{}
+	if err := object.GetAspect(stratumAgents); err != nil {
 		return nil, err
+	}
+	d := &StratumP4{
+		ID:       string(object.ID),
+		DeviceID: stratumAgents.DeviceID,
+		endpoint: stratumAgents.P4RTEndpoint,
+		RoleName: roleName,
 	}
 	return d, nil
 }
@@ -57,23 +60,22 @@ func (d *StratumP4) Connect() error {
 	}
 
 	var err error
-	endpoint := d.p4Server.Endpoint
-	d.conn, err = grpc.Dial(fmt.Sprintf("%s:%d", endpoint.Address, endpoint.Port), opts...)
+	d.conn, err = grpc.Dial(fmt.Sprintf("%s:%d", d.endpoint.Address, d.endpoint.Port), opts...)
 	if err != nil {
 		return err
 	}
 
 	d.client = p4api.NewP4RuntimeClient(d.conn)
-	d.ctx = context.Background()
+	d.Context = context.Background()
 
 	// Establish stream and issue mastership
-	if d.stream, err = d.client.StreamChannel(d.ctx); err != nil {
+	if d.stream, err = d.client.StreamChannel(d.Context); err != nil {
 		return err
 	}
 
-	d.electionID = p4utils.TimeBasedElectionID()
-	role := p4utils.NewStratumRole(d.roleName, 0, []byte{}, false, true)
-	if err = d.stream.Send(p4utils.CreateMastershipArbitration(d.electionID, role)); err != nil {
+	d.ElectionID = p4utils.TimeBasedElectionID()
+	role := p4utils.NewStratumRole(d.RoleName, 0, []byte{}, false, true)
+	if err = d.stream.Send(p4utils.CreateMastershipArbitration(d.ElectionID, role)); err != nil {
 		return err
 	}
 
@@ -85,7 +87,7 @@ func (d *StratumP4) Connect() error {
 	if mar == nil {
 		return errors.NewInvalid("%s: did not receive mastership arbitration", d.ID)
 	}
-	if mar.ElectionId == nil || mar.ElectionId.High != d.electionID.High || mar.ElectionId.Low != d.electionID.Low {
+	if mar.ElectionId == nil || mar.ElectionId.High != d.ElectionID.High || mar.ElectionId.Low != d.ElectionID.Low {
 		return errors.NewInvalid("%s: did not win election", d.ID)
 	}
 
@@ -102,8 +104,8 @@ func (d *StratumP4) Disconnect() error {
 func (d *StratumP4) ReconcilePipelineConfig(info []byte, binary []byte, cookie uint64) (uint64, error) {
 	log.Infof("%s: configuring pipeline...", d.ID)
 	// ask for the pipeline config cookie
-	gr, err := d.client.GetForwardingPipelineConfig(d.ctx, &p4api.GetForwardingPipelineConfigRequest{
-		DeviceId:     d.p4Server.DeviceID,
+	gr, err := d.client.GetForwardingPipelineConfig(d.Context, &p4api.GetForwardingPipelineConfigRequest{
+		DeviceId:     d.DeviceID,
 		ResponseType: p4api.GetForwardingPipelineConfigRequest_COOKIE_ONLY,
 	})
 	if err != nil {
@@ -123,10 +125,10 @@ func (d *StratumP4) ReconcilePipelineConfig(info []byte, binary []byte, cookie u
 
 	// and then apply it to the device
 	newCookie := uint64(time.Now().UnixNano())
-	_, err = d.client.SetForwardingPipelineConfig(d.ctx, &p4api.SetForwardingPipelineConfigRequest{
-		DeviceId:   d.p4Server.DeviceID,
-		Role:       d.roleName,
-		ElectionId: d.electionID,
+	_, err = d.client.SetForwardingPipelineConfig(d.Context, &p4api.SetForwardingPipelineConfigRequest{
+		DeviceId:   d.DeviceID,
+		Role:       d.RoleName,
+		ElectionId: d.ElectionID,
 		Action:     p4api.SetForwardingPipelineConfigRequest_VERIFY_AND_COMMIT,
 		Config: &p4api.ForwardingPipelineConfig{
 			P4Info:         p4i,
