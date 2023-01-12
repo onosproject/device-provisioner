@@ -54,31 +54,18 @@ func (s *TestSuite) TestPipelineBasics(t *testing.T) {
 	assert.True(t, len(slurp(stream)) >= 1)
 
 	// Create topo object for our topology with device config aspect
-	object := &topo.Object{
-		ID:   "spine1",
-		Type: topo.Object_ENTITY,
-		Obj: &topo.Object_Entity{Entity: &topo.Entity{
-			KindID: "switch",
-		}},
-		Labels: map[string]string{"pod": "all"},
-	}
-	err = object.SetAspect(&topo.P4RuntimeServer{
-		Endpoint: &topo.Endpoint{
-			Address: "fabric-sim",
-			Port:    20000,
-		},
-	})
-	assert.NoError(t, err)
-
-	err = object.SetAspect(&provisioner.DeviceConfig{
-		PipelineConfigID: pipelineConfigName,
-	})
+	object := topo.NewEntity(topo.ID("spine1"), topo.SwitchKind)
+	object.Labels = map[string]string{"pod": "all"}
+	_, err = object.WithAspects(
+		&topo.P4RuntimeServer{Endpoint: &topo.Endpoint{Address: "fabric-sim", Port: 20000}},
+		&provisioner.DeviceConfig{PipelineConfigID: pipelineConfigName},
+	)
 	assert.NoError(t, err)
 
 	_, err = topoClient.Create(ctx, &topo.CreateRequest{Object: object})
 	assert.NoError(t, err)
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	// Validate that the pipeline config got set on the topology object
 	gresp, err := topoClient.Get(ctx, &topo.GetRequest{ID: "spine1"})
@@ -133,31 +120,18 @@ func (s *TestSuite) TestChassisBasics(t *testing.T) {
 	assert.True(t, len(slurp(stream)) >= 1)
 
 	// Create topo object for our topology with device config aspect
-	object := &topo.Object{
-		ID:   "spine2",
-		Type: topo.Object_ENTITY,
-		Obj: &topo.Object_Entity{Entity: &topo.Entity{
-			KindID: "switch",
-		}},
-		Labels: map[string]string{"pod": "all"},
-	}
-	err = object.SetAspect(&topo.GNMIServer{
-		Endpoint: &topo.Endpoint{
-			Address: "fabric-sim",
-			Port:    20001,
-		},
-	})
-	assert.NoError(t, err)
-
-	err = object.SetAspect(&provisioner.DeviceConfig{
-		ChassisConfigID: chassisConfigName,
-	})
+	object := topo.NewEntity(topo.ID("spine2"), topo.SwitchKind)
+	object.Labels = map[string]string{"pod": "all"}
+	_, err = object.WithAspects(
+		&topo.GNMIServer{Endpoint: &topo.Endpoint{Address: "fabric-sim", Port: 20001}},
+		&provisioner.DeviceConfig{ChassisConfigID: chassisConfigName},
+	)
 	assert.NoError(t, err)
 
 	_, err = topoClient.Create(ctx, &topo.CreateRequest{Object: object})
 	assert.NoError(t, err)
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	// Validate that the chassis config got set on the topology object
 	gresp, err := topoClient.Get(ctx, &topo.GetRequest{ID: "spine2"})

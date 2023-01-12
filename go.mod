@@ -7,7 +7,7 @@ require (
 	github.com/gogo/protobuf v1.3.2
 	github.com/onosproject/fabric-sim v0.1.19
 	github.com/onosproject/helmit v0.6.20
-	github.com/onosproject/onos-api/go v0.10.15
+	github.com/onosproject/onos-api/go v0.10.19
 	github.com/onosproject/onos-lib-go v0.10.5
 	github.com/onosproject/onos-net-lib v0.1.15
 	github.com/onosproject/onos-test v0.6.6
