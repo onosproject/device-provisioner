@@ -61,7 +61,7 @@ type ConfigStore interface {
 // NewAtomixStore returns a new persistent store for configuration records whose artifacts
 // are stored in the give artifacts directory
 func NewAtomixStore(client primitive.Client, artifactsDirPath string) (ConfigStore, error) {
-	configs, err := _map.NewBuilder[provisioner.ConfigID, *provisioner.ConfigRecord](client, "onos-device-confis").
+	configs, err := _map.NewBuilder[provisioner.ConfigID, *provisioner.ConfigRecord](client, "onos-device-configs").
 		Tag("device-provisioner", "device-configs").
 		Codec(generic.Proto[*provisioner.ConfigRecord](&provisioner.ConfigRecord{})).
 		Get(context.Background())
