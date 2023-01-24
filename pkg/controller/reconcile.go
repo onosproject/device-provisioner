@@ -186,16 +186,15 @@ func (c *Controller) reconcilePipelineConfiguration(object *topo.Object, dcfg *p
 
 // setPipelineConfig makes sure that the device has the given P4 pipeline configuration applied
 func (c *Controller) reconcilePipelineConfig(object *topo.Object, info []byte, binary []byte, cookie uint64) (uint64, error) {
-	// ask for the pipeline config cookie
-
-	stratumAgents := &topo.StratumAgents{}
-	if err := object.GetAspect(stratumAgents); err != nil {
-		return 0, err
-	}
-	// Connect to device using P4Runtime
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+	stratumAgents := &topo.StratumAgents{}
+	if err := object.GetAspect(stratumAgents); err != nil {
+		log.Warnw("Failed to extract stratum agents aspect", "error", err)
+		return 0, err
+	}
 
+	// Connect to device using P4Runtime
 	dest := &p4rtclient.Destination{
 		TargetID: object.ID,
 		Endpoint: stratumAgents.P4RTEndpoint,
@@ -216,7 +215,7 @@ func (c *Controller) reconcilePipelineConfig(object *topo.Object, info []byte, b
 		return 0, err
 	}
 	electionID := arbitrationResponse.Arbitration.ElectionId
-
+	// ask for the pipeline config cookie
 	gr, err := p4rtConn.GetForwardingPipelineConfig(ctx, &p4api.GetForwardingPipelineConfigRequest{
 		DeviceId:     dest.DeviceID,
 		ResponseType: p4api.GetForwardingPipelineConfigRequest_COOKIE_ONLY,
@@ -234,6 +233,7 @@ func (c *Controller) reconcilePipelineConfig(object *topo.Object, info []byte, b
 	// otherwise unmarshal the P4Info
 	p4i := &p4info.P4Info{}
 	if err = prototext.Unmarshal(info, p4i); err != nil {
+		log.Warnw("Failed to unmarshal p4info", "error", err)
 		return 0, err
 	}
 
@@ -251,10 +251,10 @@ func (c *Controller) reconcilePipelineConfig(object *topo.Object, info []byte, b
 		},
 	})
 	if err != nil {
-		return 0, nil
+		return 0, err
 	}
 	log.Infof("%s: pipeline configured with cookie %d", dest.TargetID, newCookie)
-	return newCookie, err
+	return newCookie, nil
 }
 
 // Runs chassis configuration reconciliation logic
