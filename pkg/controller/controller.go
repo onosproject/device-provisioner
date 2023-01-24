@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-var log = logging.GetLogger("controller")
+var log = logging.GetLogger()
 
 // State represents the various states of controller lifecycle
 type State int

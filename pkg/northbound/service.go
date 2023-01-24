@@ -16,7 +16,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-var log = logging.GetLogger("northbound")
+var log = logging.GetLogger()
 
 // Service implements the device provisioner NB gRPC
 type Service struct {

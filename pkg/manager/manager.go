@@ -17,7 +17,7 @@ import (
 	"github.com/onosproject/onos-net-lib/pkg/p4rtclient"
 )
 
-var log = logging.GetLogger("manager")
+var log = logging.GetLogger()
 
 // Config is a manager configuration
 type Config struct {

@@ -20,7 +20,7 @@ import (
 	"io"
 )
 
-var log = logging.GetLogger("store")
+var log = logging.GetLogger()
 
 const (
 	// PipelineConfigKind represents pipeline configurations
