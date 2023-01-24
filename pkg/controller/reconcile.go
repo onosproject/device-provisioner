@@ -13,6 +13,11 @@ import (
 	"github.com/onosproject/onos-api/go/onos/provisioner"
 	"github.com/onosproject/onos-api/go/onos/topo"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
+	"github.com/onosproject/onos-net-lib/pkg/p4rtclient"
+	"github.com/onosproject/onos-net-lib/pkg/p4utils"
+	p4info "github.com/p4lang/p4runtime/go/p4/config/v1"
+	p4api "github.com/p4lang/p4runtime/go/p4/v1"
+	"google.golang.org/protobuf/encoding/prototext"
 	"io"
 	"time"
 )
@@ -166,29 +171,90 @@ func (c *Controller) reconcilePipelineConfiguration(object *topo.Object, dcfg *p
 		return
 	}
 
-	// Connect to device using P4Runtime
-	device, err := southbound.NewStratumP4(object, provisionerRoleName)
-	if err != nil {
-		log.Warnf("Unable to create Stratum device descriptor for %s: %+v", object.ID, err)
-		return
-	}
-	if err = device.Connect(); err != nil {
-		log.Warnf("Unable to connect to Stratum device P4Runtime %s: %+v", object.ID, err)
-		return
-	}
-
 	// Run the reconciliation against the device
-	pcState.Cookie, err = device.ReconcilePipelineConfig(artifacts[provisioner.P4InfoType], artifacts[provisioner.P4BinaryType], pcState.Cookie)
+	pcState.Cookie, err = c.reconcilePipelineConfig(object, artifacts[provisioner.P4InfoType], artifacts[provisioner.P4BinaryType], pcState.Cookie)
 	if err != nil {
 		log.Warnf("Unable to reconcile Stratum P4Runtime pipeline config for %s: %+v", object.ID, err)
 		return
 	}
-	_ = device.Disconnect()
 
 	// Update PipelineConfigState aspect
 	pcState.ConfigID = dcfg.PipelineConfigID
 	pcState.Updated = time.Now()
 	_ = c.updateObjectAspect(object, "pipeline", pcState)
+}
+
+// setPipelineConfig makes sure that the device has the given P4 pipeline configuration applied
+func (c *Controller) reconcilePipelineConfig(object *topo.Object, info []byte, binary []byte, cookie uint64) (uint64, error) {
+	// ask for the pipeline config cookie
+
+	stratumAgents := &topo.StratumAgents{}
+	if err := object.GetAspect(stratumAgents); err != nil {
+		return 0, err
+	}
+	// Connect to device using P4Runtime
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	dest := &p4rtclient.Destination{
+		TargetID: object.ID,
+		Endpoint: stratumAgents.P4RTEndpoint,
+		DeviceID: stratumAgents.DeviceID,
+		RoleName: provisionerRoleName,
+	}
+
+	p4rtConn, err := c.conns.Connect(ctx, dest)
+	if err != nil {
+		log.Warnw("Cannot connect to dest", "dest", dest, "error", err)
+		return 0, err
+	}
+
+	role := p4utils.NewStratumRole(dest.RoleName, 0, []byte{}, false, true)
+	arbitrationResponse, err := p4rtConn.PerformMasterArbitration(role)
+	if err != nil {
+		log.Warnw("Failed to perform master arbitration", "error", err)
+		return 0, err
+	}
+	electionID := arbitrationResponse.Arbitration.ElectionId
+
+	gr, err := p4rtConn.GetForwardingPipelineConfig(ctx, &p4api.GetForwardingPipelineConfigRequest{
+		DeviceId:     dest.DeviceID,
+		ResponseType: p4api.GetForwardingPipelineConfigRequest_COOKIE_ONLY,
+	})
+	if err != nil {
+		log.Warnw("Failed to retrieve pipeline configuration", "error", err)
+		return 0, err
+	}
+
+	// if that matches our cookie, we're good
+	if cookie == gr.Config.Cookie.Cookie && cookie > 0 {
+		return cookie, nil
+	}
+
+	// otherwise unmarshal the P4Info
+	p4i := &p4info.P4Info{}
+	if err = prototext.Unmarshal(info, p4i); err != nil {
+		return 0, err
+	}
+
+	// and then apply it to the device
+	newCookie := uint64(time.Now().UnixNano())
+	_, err = p4rtConn.SetForwardingPipelineConfig(ctx, &p4api.SetForwardingPipelineConfigRequest{
+		DeviceId:   dest.DeviceID,
+		Role:       dest.RoleName,
+		ElectionId: electionID,
+		Action:     p4api.SetForwardingPipelineConfigRequest_VERIFY_AND_COMMIT,
+		Config: &p4api.ForwardingPipelineConfig{
+			P4Info:         p4i,
+			P4DeviceConfig: binary,
+			Cookie:         &p4api.ForwardingPipelineConfig_Cookie{Cookie: newCookie},
+		},
+	})
+	if err != nil {
+		return 0, nil
+	}
+	log.Infof("%s: pipeline configured with cookie %d", dest.TargetID, newCookie)
+	return newCookie, err
 }
 
 // Runs chassis configuration reconciliation logic
