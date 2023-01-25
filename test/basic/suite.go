@@ -6,6 +6,7 @@
 package basic
 
 import (
+	"github.com/onosproject/device-provisioner/test/utils/charts"
 	fsimtopo "github.com/onosproject/fabric-sim/pkg/topo"
 	"github.com/onosproject/helmit/pkg/helm"
 	"github.com/onosproject/helmit/pkg/input"
@@ -24,19 +25,18 @@ type TestSuite struct {
 }
 
 const (
-	topoName               = "onos-topo"
 	fabricSimComponentName = "fabric-sim"
-	deviceProvisionerName  = "device-provisioner"
 )
 
 // SetupTestSuite sets up the fabric simulator basic test suite
 func (s *TestSuite) SetupTestSuite(c *input.Context) error {
 	registry := c.GetArg("registry").String("")
-	err := helm.Chart(topoName, onostest.OnosChartRepo).
-		Release(topoName).
-		Set("image.tag", "latest").
+	umbrella := charts.CreateUmbrellaRelease()
+	err := umbrella.
 		Set("global.image.registry", registry).
-		Install(false)
+		Set("device-provisioner.image.tag", "latest").
+		Set("import.device-provisioner.enabled", true).
+		Install(true)
 	if err != nil {
 		return err
 	}
@@ -46,15 +46,6 @@ func (s *TestSuite) SetupTestSuite(c *input.Context) error {
 		Set("image.tag", "latest").
 		Set("global.image.registry", registry).
 		Install(false)
-	if err != nil {
-		return err
-	}
-
-	err = helm.Chart(deviceProvisionerName, onostest.OnosChartRepo).
-		Release(deviceProvisionerName).
-		Set("image.tag", "latest").
-		Set("global.image.registry", registry).
-		Install(true)
 	if err != nil {
 		return err
 	}
