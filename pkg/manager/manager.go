@@ -14,9 +14,10 @@ import (
 	"github.com/onosproject/onos-lib-go/pkg/cli"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-lib-go/pkg/northbound"
+	"github.com/onosproject/onos-net-lib/pkg/p4rtclient"
 )
 
-var log = logging.GetLogger("manager")
+var log = logging.GetLogger()
 
 // Config is a manager configuration
 type Config struct {
@@ -55,8 +56,9 @@ func (m *Manager) Start() error {
 	if err != nil {
 		return err
 	}
+	conns := p4rtclient.NewConnManager()
 
-	m.controller = controller.NewController(m.Config.RealmLabel, m.Config.RealmValue, m.configStore, m.Config.TopoAddress, opts...)
+	m.controller = controller.NewController(m.Config.RealmLabel, m.Config.RealmValue, m.configStore, m.Config.TopoAddress, conns, opts...)
 	m.controller.Start()
 
 	// Start NB server

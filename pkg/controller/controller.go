@@ -10,12 +10,13 @@ import (
 	"github.com/onosproject/device-provisioner/pkg/store"
 	"github.com/onosproject/onos-api/go/onos/topo"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
+	"github.com/onosproject/onos-net-lib/pkg/p4rtclient"
 	"google.golang.org/grpc"
 	"sync"
 	"time"
 )
 
-var log = logging.GetLogger("controller")
+var log = logging.GetLogger()
 
 // State represents the various states of controller lifecycle
 type State int
@@ -57,10 +58,11 @@ type Controller struct {
 	ctxCancel   context.CancelFunc
 	queue       chan *topo.Object
 	workingOn   map[topo.ID]*topo.Object
+	conns       p4rtclient.ConnManager
 }
 
 // NewController creates a new device provisioner controller
-func NewController(realmLabel string, realmValue string, configStore store.ConfigStore, topoAddress string, topoOpts ...grpc.DialOption) *Controller {
+func NewController(realmLabel string, realmValue string, configStore store.ConfigStore, topoAddress string, conns p4rtclient.ConnManager, topoOpts ...grpc.DialOption) *Controller {
 	opts := append(topoOpts, grpc.WithBlock())
 	return &Controller{
 		realmLabel:  realmLabel,
@@ -69,6 +71,7 @@ func NewController(realmLabel string, realmValue string, configStore store.Confi
 		topoAddress: topoAddress,
 		topoOpts:    opts,
 		workingOn:   make(map[topo.ID]*topo.Object),
+		conns:       conns,
 	}
 }
 
