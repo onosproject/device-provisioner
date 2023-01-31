@@ -35,7 +35,7 @@ jenkins-test: jenkins-tools mod-lint build linters license
 	TEST_PACKAGES=github.com/onosproject/device-provisioner/... ./build/build-tools/build/jenkins/make-unit
 
 integration-tests:  # @HELP run helmit integration tests locally
-	(kubectl delete ns test || exit 0) && kubectl create ns test && helmit test -n test -c . ./cmd/device-provisioner-tests
+	make namespace basic -C test
 
 device-provisioner-docker:  # @HELP build device-provisioner base Docker image
 	docker build --platform linux/amd64 . -f build/device-provisioner/Dockerfile \

@@ -1,5 +1,5 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 
-Files: VERSION .gitreview  go.mod go.sum bin/* build/build-tools docs/images/* *.yaml *.txt *.gnmi
+Files: VERSION .gitreview  go.mod go.sum */go.mod */go.sum bin/* build/build-tools docs/images/* *.yaml *.txt *.gnmi
 Copyright: 2022-present Intel Corporation
 License: Apache-2.0
