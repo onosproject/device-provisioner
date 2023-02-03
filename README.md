@@ -63,7 +63,7 @@ message ChassisConfigState {
 }
 ```
 
-Lastly, the southbound code of the reconciler relies on `onos.topo.P4RuntimeServer` aspect to obtain
+Lastly, the southbound code of the reconciler relies on `onos.topo.StratumAgents` aspect to obtain
 P4Runtime endpoint information for establishing its connection to the Stratum device.
 
 ## Realms
@@ -116,6 +116,8 @@ Flags:
 
 Use "onos provisioner [command] --help" for more information about a command.
 ```
+
+For a more detailed information on the command usage, see [`onos provisioner`](https://github.com/onosproject/onos-cli/blob/master/docs/cli/onos_provisioner.md) command.
 
 ## Operation
 
