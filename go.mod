@@ -3,7 +3,7 @@ module github.com/onosproject/device-provisioner
 go 1.19
 
 require (
-	github.com/atomix/go-sdk v0.10.0
+	github.com/atomix/go-sdk v0.12.7
 	github.com/gogo/protobuf v1.3.2
 	github.com/onosproject/onos-api/go v0.10.21
 	github.com/onosproject/onos-lib-go v0.10.5
@@ -18,12 +18,13 @@ require (
 
 require (
 	github.com/Shopify/sarama v1.31.1 // indirect
-	github.com/atomix/runtime/api v0.7.0 // indirect
-	github.com/atomix/runtime/primitives v0.7.2 // indirect
-	github.com/atomix/runtime/proxy v0.10.0 // indirect
+	github.com/atomix/atomix/api v0.9.2 // indirect
+	github.com/atomix/atomix/protocols/rsm v0.5.6 // indirect
+	github.com/atomix/atomix/runtime v0.9.0 // indirect
+	github.com/atomix/atomix/sidecar v0.4.4 // indirect
 	github.com/atomix/runtime/sdk v0.7.4 // indirect
-	github.com/bits-and-blooms/bitset v1.2.0 // indirect
-	github.com/bits-and-blooms/bloom/v3 v3.2.0 // indirect
+	github.com/bits-and-blooms/bitset v1.3.1 // indirect
+	github.com/bits-and-blooms/bloom/v3 v3.3.1 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/eapache/go-resiliency v1.2.0 // indirect
@@ -38,6 +39,7 @@ require (
 	github.com/google/uuid v1.2.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
 	github.com/hashicorp/go-uuid v1.0.2 // indirect
+	github.com/hashicorp/golang-lru/v2 v2.0.1 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jcmturner/aescts/v2 v2.0.0 // indirect
@@ -63,7 +65,7 @@ require (
 	github.com/subosito/gotenv v1.2.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	go.uber.org/zap v1.21.0 // indirect
+	go.uber.org/zap v1.24.0 // indirect
 	golang.org/x/crypto v0.0.0-20220411220226-7b82a4e95df4 // indirect
 	golang.org/x/net v0.0.0-20220412020605-290c469a71a5 // indirect
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5 // indirect
