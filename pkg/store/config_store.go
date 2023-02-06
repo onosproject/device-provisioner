@@ -8,9 +8,9 @@ package store
 import (
 	"context"
 	"fmt"
-	"github.com/atomix/go-sdk/pkg/generic"
 	"github.com/atomix/go-sdk/pkg/primitive"
 	_map "github.com/atomix/go-sdk/pkg/primitive/map"
+	"github.com/atomix/go-sdk/pkg/types"
 	"os"
 	"time"
 
@@ -63,7 +63,7 @@ type ConfigStore interface {
 func NewAtomixStore(client primitive.Client, artifactsDirPath string) (ConfigStore, error) {
 	configs, err := _map.NewBuilder[provisioner.ConfigID, *provisioner.ConfigRecord](client, "onos-device-configs").
 		Tag("device-provisioner", "device-configs").
-		Codec(generic.Proto[*provisioner.ConfigRecord](&provisioner.ConfigRecord{})).
+		Codec(types.Proto[*provisioner.ConfigRecord](&provisioner.ConfigRecord{})).
 		Get(context.Background())
 	if err != nil {
 		return nil, errors.FromAtomix(err)
