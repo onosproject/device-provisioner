@@ -2,8 +2,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-// Package store contains the stores for tracking pipeline and chassis configurations and their deployments
-package store
+// Package config contains the stores for tracking pipeline and chassis configurations and their deployments
+package config
 
 import (
 	"context"
