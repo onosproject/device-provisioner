@@ -1,15 +1,18 @@
-// SPDX-FileCopyrightText: 2022-present Intel Corporation
+// SPDX-FileCopyrightText: 2020-present Open Networking Foundation <info@opennetworking.org>
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package configuration
+package target
 
 import (
 	"context"
-	"github.com/onosproject/device-provisioner/pkg/store/topo"
-	topoapi "github.com/onosproject/onos-api/go/onos/topo"
-	"github.com/onosproject/onos-lib-go/pkg/controller"
+	"github.com/onosproject/onos-net-lib/pkg/p4rtclient"
 	"sync"
+
+	topoapi "github.com/onosproject/onos-api/go/onos/topo"
+
+	"github.com/onosproject/device-provisioner/pkg/store/topo"
+	"github.com/onosproject/onos-lib-go/pkg/controller"
 )
 
 const queueSize = 100
@@ -45,6 +48,7 @@ func (w *TopoWatcher) Start(ch chan<- controller.ID) error {
 		for event := range eventCh {
 			if _, ok := event.Object.Obj.(*topoapi.Object_Entity); ok {
 				ch <- controller.NewID(event.Object.ID)
+
 			}
 		}
 	}()
@@ -71,4 +75,49 @@ func queryFilter(realmLabel string, realmValue string) *topoapi.Filters {
 		ObjectTypes: []topoapi.Object_Type{topoapi.Object_ENTITY},
 		WithAspects: []string{"onos.provisioner.DeviceConfig", "onos.topo.StratumAgents"},
 	}
+}
+
+// ConnWatcher is a P4RT connection watcher
+type ConnWatcher struct {
+	conns  p4rtclient.ConnManager
+	cancel context.CancelFunc
+	mu     sync.Mutex
+	connCh chan p4rtclient.Conn
+}
+
+// Start starts the connection watcher
+func (c *ConnWatcher) Start(ch chan<- controller.ID) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.cancel != nil {
+		return nil
+	}
+
+	c.connCh = make(chan p4rtclient.Conn, queueSize)
+	ctx, cancel := context.WithCancel(context.Background())
+	err := c.conns.Watch(ctx, c.connCh)
+	if err != nil {
+		cancel()
+		return err
+	}
+	c.cancel = cancel
+
+	go func() {
+		for conn := range c.connCh {
+			log.Debugw("Received P4RT Connection event for connection", "connectionID", conn.ID())
+			ch <- controller.NewID(conn.TargetID())
+		}
+		close(ch)
+	}()
+	return nil
+}
+
+// Stop stops the connection watcher
+func (c *ConnWatcher) Stop() {
+	c.mu.Lock()
+	if c.cancel != nil {
+		c.cancel()
+		c.cancel = nil
+	}
+	c.mu.Unlock()
 }

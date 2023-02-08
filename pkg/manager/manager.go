@@ -7,8 +7,14 @@ package manager
 
 import (
 	"github.com/atomix/go-sdk/pkg/client"
+<<<<<<< HEAD
+=======
+	"github.com/onosproject/device-provisioner/pkg/controller/chassis"
+	"github.com/onosproject/device-provisioner/pkg/controller/pipeline"
+	"github.com/onosproject/device-provisioner/pkg/controller/target"
+>>>>>>> b391b0a (Migrate device provisioner to use controller framework)
 	nb "github.com/onosproject/device-provisioner/pkg/northbound"
-	"github.com/onosproject/device-provisioner/pkg/store/config"
+	"github.com/onosproject/device-provisioner/pkg/store/pipelineconfig"
 	"github.com/onosproject/device-provisioner/pkg/store/topo"
 	"github.com/onosproject/onos-lib-go/pkg/certs"
 	"github.com/onosproject/onos-lib-go/pkg/cli"
@@ -54,12 +60,30 @@ func (m *Manager) Start() error {
 		return err
 	}
 
-	configStore, err := config.NewAtomixStore(client.NewClient(), m.Config.ArtifactDir)
+	configStore, err := pipelineconfig.NewAtomixStore(client.NewClient(), m.Config.ArtifactDir)
 	if err != nil {
 		return err
 	}
 	conns := p4rtclient.NewConnManager()
-	
+
+	targetController := target.NewController(topoStore, conns, m.Config.RealmLabel, m.Config.RealmValue)
+	err = targetController.Start()
+	if err != nil {
+		return err
+	}
+
+	pipelineController := pipeline.NewController(topoStore, conns, configStore, m.Config.RealmLabel, m.Config.RealmValue)
+	err = pipelineController.Start()
+	if err != nil {
+		return err
+	}
+
+	chassisController := chassis.NewController(topoStore, configStore, m.Config.RealmLabel, m.Config.RealmValue)
+	err = chassisController.Start()
+	if err != nil {
+		return err
+	}
+
 	// Start NB server
 	s := northbound.NewServer(cli.ServerConfigFromFlags(m.Config.ServiceFlags, northbound.SecurityConfig{}))
 	s.AddService(logging.Service{})

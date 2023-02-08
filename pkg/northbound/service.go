@@ -7,7 +7,7 @@ package northbound
 
 import (
 	"context"
-	"github.com/onosproject/device-provisioner/pkg/store/config"
+	"github.com/onosproject/device-provisioner/pkg/store/pipelineconfig"
 	api "github.com/onosproject/onos-api/go/onos/provisioner"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
@@ -20,11 +20,11 @@ var log = logging.GetLogger()
 // Service implements the device provisioner NB gRPC
 type Service struct {
 	northbound.Service
-	configStore config.ConfigStore
+	configStore pipelineconfig.ConfigStore
 }
 
 // NewService allocates a Service struct with the given parameters
-func NewService(configStore config.ConfigStore) Service {
+func NewService(configStore pipelineconfig.ConfigStore) Service {
 	return Service{
 		configStore: configStore,
 	}
@@ -41,7 +41,7 @@ func (s Service) Register(r *grpc.Server) {
 
 // Server implements the grpc device provisioner service
 type Server struct {
-	configStore config.ConfigStore
+	configStore pipelineconfig.ConfigStore
 }
 
 // Add registers new pipeline configuration
