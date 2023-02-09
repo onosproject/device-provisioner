@@ -24,6 +24,7 @@ var log = logging.GetLogger()
 
 const (
 	defaultTimeout = 30 * time.Second
+	requeueTimeout = 20 * time.Second
 )
 
 // NewController returns a new pipeline and chassis configuration controller
@@ -70,8 +71,9 @@ func (r *Reconciler) Reconcile(id controller.ID) (controller.Result, error) {
 		log.Warnw("Failed reconciling chassis config", "targetID", targetID, "error", err)
 		return controller.Result{}, err
 	}
-
-	return controller.Result{}, nil
+	return controller.Result{
+		RequeueAfter: requeueTimeout,
+	}, nil
 }
 
 func (r *Reconciler) reconcileChassisConfiguration(ctx context.Context, target *topoapi.Object) error {
@@ -82,7 +84,7 @@ func (r *Reconciler) reconcileChassisConfiguration(ctx context.Context, target *
 		return err
 	}
 	if deviceConfigAspect.ChassisConfigID == "" {
-		log.Warnw("Chassis config ID is not set", "targetID", target.ID, "error", err)
+		log.Warnw("Chassis config ID is not set", "targetID", target.ID)
 		return nil
 	}
 
@@ -99,9 +101,19 @@ func (r *Reconciler) reconcileChassisConfiguration(ctx context.Context, target *
 		}
 		return nil
 	}
+	if ccState.ConfigID != deviceConfigAspect.ChassisConfigID {
+		ccState.ConfigID = deviceConfigAspect.ChassisConfigID
+		ccState.Updated = time.Now()
+		ccState.Status.State = provisionerapi.ConfigStatus_PENDING
+		err = r.updateObjectAspect(ctx, target, "chassis", ccState)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
 
 	if ccState.Status.State != provisionerapi.ConfigStatus_PENDING {
-		log.Debugw("Chassis config state is not in Pending state", "ConfigState", ccState.Status.State)
+		log.Infow("Chassis config state is not in Pending state", "ConfigState", ccState.Status.State)
 		return nil
 	}
 
@@ -134,7 +146,6 @@ func (r *Reconciler) reconcileChassisConfiguration(ctx context.Context, target *
 		return err
 	}
 	log.Infow("Chassis config is set successfully", "targetID", target.ID)
-
 	return nil
 }
 

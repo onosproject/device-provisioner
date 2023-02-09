@@ -30,6 +30,7 @@ var log = logging.GetLogger()
 const (
 	defaultTimeout      = 30 * time.Second
 	provisionerRoleName = "provisioner"
+	requeueTimeout      = 20 * time.Second
 )
 
 // NewController returns a new pipeline and chassis configuration controller
@@ -56,7 +57,7 @@ type Reconciler struct {
 	configStore configstore.ConfigStore
 }
 
-// Reconcile reconciles device pipeline and
+// Reconcile reconciles device pipeline config
 func (r *Reconciler) Reconcile(id controller.ID) (controller.Result, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
@@ -79,7 +80,9 @@ func (r *Reconciler) Reconcile(id controller.ID) (controller.Result, error) {
 		return controller.Result{}, err
 	}
 
-	return controller.Result{}, nil
+	return controller.Result{
+		RequeueAfter: requeueTimeout,
+	}, nil
 }
 
 func (r *Reconciler) reconcilePipelineConfiguration(ctx context.Context, target *topoapi.Object) error {
@@ -92,14 +95,13 @@ func (r *Reconciler) reconcilePipelineConfiguration(ctx context.Context, target 
 	}
 
 	if deviceConfigAspect.PipelineConfigID == "" {
-		log.Warnw("Chassis config ID is not set", "targetID", targetID, "error", err)
-		return err
+		log.Warnw("Pipeline config ID is not set", "targetID", targetID)
+		return nil
 	}
 
 	pcState := &provisionerapi.PipelineConfigState{}
 	err = target.GetAspect(pcState)
 	if err != nil {
-		// Update ChassisConfigState aspect
 		pcState.ConfigID = deviceConfigAspect.PipelineConfigID
 		pcState.Updated = time.Now()
 		pcState.Status.State = provisionerapi.ConfigStatus_PENDING
@@ -108,8 +110,20 @@ func (r *Reconciler) reconcilePipelineConfiguration(ctx context.Context, target 
 			return err
 		}
 	}
+
+	if pcState.ConfigID != deviceConfigAspect.PipelineConfigID {
+		pcState.ConfigID = deviceConfigAspect.PipelineConfigID
+		pcState.Updated = time.Now()
+		pcState.Status.State = provisionerapi.ConfigStatus_PENDING
+		err = r.updateObjectAspect(ctx, target, "pipeline", pcState)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
 	if pcState.Status.State != provisionerapi.ConfigStatus_PENDING {
-		log.Debugw("Device Pipeline config state is not in Pending state", "ConfigState", pcState.Status.State)
+		log.Infow("Device Pipeline config state is not in Pending state", "ConfigState", pcState.Status.State)
 		return nil
 	}
 
@@ -120,16 +134,20 @@ func (r *Reconciler) reconcilePipelineConfiguration(ctx context.Context, target 
 		return err
 	}
 
-	pcState.Cookie, err = r.setPipelineConfig(ctx, target, artifacts[provisionerapi.P4InfoType], artifacts[provisionerapi.P4BinaryType], pcState.Cookie)
+	newCookie, err := r.setPipelineConfig(ctx, target, artifacts[provisionerapi.P4InfoType], artifacts[provisionerapi.P4BinaryType], pcState.Cookie)
 	if err != nil {
 		log.Warnw("Failed reconcile Stratum P4Runtime pipeline config", "targetID", targetID, "error", err)
 		pcState.ConfigID = deviceConfigAspect.PipelineConfigID
 		pcState.Updated = time.Now()
 		pcState.Status.State = provisionerapi.ConfigStatus_FAILED
+		pcState.Cookie = 0
 		err = r.updateObjectAspect(ctx, target, "pipeline", pcState)
 		if err != nil {
 			return err
 		}
+		return nil
+	}
+	if newCookie == pcState.Cookie {
 		return nil
 	}
 
@@ -137,6 +155,7 @@ func (r *Reconciler) reconcilePipelineConfiguration(ctx context.Context, target 
 	pcState.ConfigID = deviceConfigAspect.PipelineConfigID
 	pcState.Updated = time.Now()
 	pcState.Status.State = provisionerapi.ConfigStatus_APPLIED
+	pcState.Cookie = newCookie
 	err = r.updateObjectAspect(ctx, target, "pipeline", pcState)
 	if err != nil {
 		return err
