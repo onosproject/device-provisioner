@@ -7,7 +7,9 @@ package utils
 
 import (
 	"context"
+	"github.com/gogo/protobuf/proto"
 	configstore "github.com/onosproject/device-provisioner/pkg/store/pipelineconfig"
+	"github.com/onosproject/device-provisioner/pkg/store/topo"
 	"github.com/onosproject/onos-api/go/onos/provisioner"
 	topoapi "github.com/onosproject/onos-api/go/onos/topo"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
@@ -49,4 +51,33 @@ func RealmQueryFilter(realmLabel string, realmValue string) *topoapi.Filters {
 		ObjectTypes: []topoapi.Object_Type{topoapi.Object_ENTITY},
 		WithAspects: []string{"onos.provisioner.DeviceConfig", "onos.topo.StratumAgents"},
 	}
+}
+
+// UpdateObjectAspect the topo object with the specified configuration aspect
+func UpdateObjectAspect(ctx context.Context, topo topo.Store, object *topoapi.Object, kind string, aspect proto.Message) error {
+	log.Infow("Updating  aspect", "kind", kind, "targetID", object.ID)
+	entity, err := topo.Get(ctx, object.ID)
+	if err != nil {
+		if !errors.IsNotFound(err) {
+			log.Warnw("Unable to get object", "targetID", object.ID, "error", err)
+			return err
+		}
+		log.Warnw("Cannot find target object", "targetID", object.ID)
+		return nil
+	}
+
+	if err = entity.SetAspect(aspect); err != nil {
+		log.Warnw("Unable to set aspect", "kind", kind, "targetID", object.ID, "error", err)
+		return err
+	}
+	err = topo.Update(ctx, entity)
+	if err != nil {
+		if !errors.IsNotFound(err) && !errors.IsConflict(err) {
+			log.Warnw("Unable to update configuration for object", "kind", kind, "targetID", object.ID, "error", err)
+			return err
+		}
+		log.Warnw("Write conflict updating entity aspect", "kind", kind, "targetID", object.ID, "error", err)
+		return nil
+	}
+	return nil
 }

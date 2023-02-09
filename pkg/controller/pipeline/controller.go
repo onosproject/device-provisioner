@@ -7,7 +7,6 @@ package pipeline
 
 import (
 	"context"
-	"github.com/gogo/protobuf/proto"
 	"github.com/onosproject/device-provisioner/pkg/controller/utils"
 	configstore "github.com/onosproject/device-provisioner/pkg/store/pipelineconfig"
 	"github.com/onosproject/device-provisioner/pkg/store/topo"
@@ -105,7 +104,7 @@ func (r *Reconciler) reconcilePipelineConfiguration(ctx context.Context, target 
 		pcState.ConfigID = deviceConfigAspect.PipelineConfigID
 		pcState.Updated = time.Now()
 		pcState.Status.State = provisionerapi.ConfigStatus_PENDING
-		err = r.updateObjectAspect(ctx, target, "pipeline", pcState)
+		err = utils.UpdateObjectAspect(ctx, r.topo, target, "pipeline", pcState)
 		if err != nil {
 			return err
 		}
@@ -115,7 +114,7 @@ func (r *Reconciler) reconcilePipelineConfiguration(ctx context.Context, target 
 		pcState.ConfigID = deviceConfigAspect.PipelineConfigID
 		pcState.Updated = time.Now()
 		pcState.Status.State = provisionerapi.ConfigStatus_PENDING
-		err = r.updateObjectAspect(ctx, target, "pipeline", pcState)
+		err = utils.UpdateObjectAspect(ctx, r.topo, target, "pipeline", pcState)
 		if err != nil {
 			return err
 		}
@@ -141,7 +140,7 @@ func (r *Reconciler) reconcilePipelineConfiguration(ctx context.Context, target 
 		pcState.Updated = time.Now()
 		pcState.Status.State = provisionerapi.ConfigStatus_FAILED
 		pcState.Cookie = 0
-		err = r.updateObjectAspect(ctx, target, "pipeline", pcState)
+		err = utils.UpdateObjectAspect(ctx, r.topo, target, "pipeline", pcState)
 		if err != nil {
 			return err
 		}
@@ -156,7 +155,7 @@ func (r *Reconciler) reconcilePipelineConfiguration(ctx context.Context, target 
 	pcState.Updated = time.Now()
 	pcState.Status.State = provisionerapi.ConfigStatus_APPLIED
 	pcState.Cookie = newCookie
-	err = r.updateObjectAspect(ctx, target, "pipeline", pcState)
+	err = utils.UpdateObjectAspect(ctx, r.topo, target, "pipeline", pcState)
 	if err != nil {
 		return err
 	}
@@ -225,34 +224,4 @@ func (r *Reconciler) setPipelineConfig(ctx context.Context, target *topoapi.Obje
 	}
 	log.Infow("pipeline configured", "targetID", target.ID, "cookie", newCookie)
 	return newCookie, nil
-}
-
-// Update the topo object with the specified configuration aspect
-func (r *Reconciler) updateObjectAspect(ctx context.Context, object *topoapi.Object, kind string, aspect proto.Message) error {
-	log.Infow("Updating configuration aspect", "kind", kind, "targetID", object.ID)
-	entity, err := r.topo.Get(ctx, object.ID)
-	if err != nil {
-		if !errors.IsNotFound(err) {
-			log.Warnw("Unable to get object", "targetID", object.ID, "error", err)
-			return err
-		}
-		log.Warnw("Cannot find target object", "targetID", object.ID)
-		return nil
-	}
-
-	if err = entity.SetAspect(aspect); err != nil {
-		log.Warnw("Unable to set aspect", "kind", kind, "targetID", object.ID, "error", err)
-		return err
-	}
-	err = r.topo.Update(ctx, entity)
-	if err != nil {
-		if !errors.IsNotFound(err) && !errors.IsConflict(err) {
-			log.Warnw("Unable to update configuration for object", "kind", kind, "targetID", object.ID, "error", err)
-			return err
-		}
-		log.Warnw("Write conflict updating entity aspect", "kind", kind, "targetID", object.ID, "error", err)
-		return nil
-	}
-
-	return nil
 }
