@@ -46,6 +46,7 @@ func (s *TestSuite) TestPipelineBasics(t *testing.T) {
 			},
 		},
 	})
+
 	assert.NoError(t, err)
 
 	// Get pipeline configs; there should be one

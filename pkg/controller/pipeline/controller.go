@@ -29,7 +29,7 @@ var log = logging.GetLogger()
 const (
 	defaultTimeout      = 30 * time.Second
 	provisionerRoleName = "provisioner"
-	requeueTimeout      = 20 * time.Second
+	requeueTimeout      = 2 * time.Minute
 )
 
 // NewController returns a new pipeline and chassis configuration controller
@@ -122,7 +122,7 @@ func (r *Reconciler) reconcilePipelineConfiguration(ctx context.Context, target 
 	}
 
 	if pcState.Status.State != provisionerapi.ConfigStatus_PENDING {
-		log.Infow("Device Pipeline config state is not in Pending state", "ConfigState", pcState.Status.State)
+		log.Debugw("Device Pipeline config state is not in Pending state", "ConfigState", pcState.Status.State)
 		return nil
 	}
 
@@ -146,6 +146,7 @@ func (r *Reconciler) reconcilePipelineConfiguration(ctx context.Context, target 
 		}
 		return nil
 	}
+
 	if newCookie == pcState.Cookie {
 		return nil
 	}

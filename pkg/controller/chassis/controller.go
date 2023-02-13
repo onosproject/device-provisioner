@@ -23,7 +23,7 @@ var log = logging.GetLogger()
 
 const (
 	defaultTimeout = 30 * time.Second
-	requeueTimeout = 20 * time.Second
+	requeueTimeout = 2 * time.Minute
 )
 
 // NewController returns a new pipeline and chassis configuration controller
@@ -90,7 +90,7 @@ func (r *Reconciler) reconcileChassisConfiguration(ctx context.Context, target *
 	ccState := &provisionerapi.ChassisConfigState{}
 	err = target.GetAspect(ccState)
 	if err != nil {
-		// Update ChassisConfigState aspect
+		// Create ChassisConfigState aspect
 		ccState.ConfigID = deviceConfigAspect.ChassisConfigID
 		ccState.Updated = time.Now()
 		ccState.Status.State = provisionerapi.ConfigStatus_PENDING
@@ -112,7 +112,7 @@ func (r *Reconciler) reconcileChassisConfiguration(ctx context.Context, target *
 	}
 
 	if ccState.Status.State != provisionerapi.ConfigStatus_PENDING {
-		log.Infow("Chassis config state is not in Pending state", "ConfigState", ccState.Status.State)
+		log.Debugw("Chassis config state is not in Pending state", "ConfigState", ccState.Status.State)
 		return nil
 	}
 
