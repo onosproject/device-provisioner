@@ -7,9 +7,12 @@ package manager
 
 import (
 	"github.com/atomix/go-sdk/pkg/client"
-	"github.com/onosproject/device-provisioner/pkg/controller"
+	"github.com/onosproject/device-provisioner/pkg/controller/chassis"
+	"github.com/onosproject/device-provisioner/pkg/controller/pipeline"
+	"github.com/onosproject/device-provisioner/pkg/controller/target"
 	nb "github.com/onosproject/device-provisioner/pkg/northbound"
-	"github.com/onosproject/device-provisioner/pkg/store"
+	"github.com/onosproject/device-provisioner/pkg/store/pipelineconfig"
+	"github.com/onosproject/device-provisioner/pkg/store/topo"
 	"github.com/onosproject/onos-lib-go/pkg/certs"
 	"github.com/onosproject/onos-lib-go/pkg/cli"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
@@ -31,9 +34,7 @@ type Config struct {
 // Manager single point of entry for the provisioner
 type Manager struct {
 	cli.Daemon
-	Config      Config
-	configStore store.ConfigStore
-	controller  *controller.Controller
+	Config Config
 }
 
 // NewManager initializes the application manager
@@ -46,30 +47,48 @@ func NewManager(cfg Config) *Manager {
 func (m *Manager) Start() error {
 	log.Info("Starting Manager")
 
-	var err error
-	if m.configStore, err = store.NewAtomixStore(client.NewClient(), m.Config.ArtifactDir); err != nil {
-		return err
-	}
-
 	// Initialize and start the configuration provisioning controller
 	opts, err := certs.HandleCertPaths(m.Config.ServiceFlags.CAPath, m.Config.ServiceFlags.KeyPath, m.Config.ServiceFlags.CertPath, true)
 	if err != nil {
 		return err
 	}
+	topoStore, err := topo.NewStore(m.Config.TopoAddress, opts...)
+	if err != nil {
+		return err
+	}
+
+	configStore, err := pipelineconfig.NewAtomixStore(client.NewClient(), m.Config.ArtifactDir)
+	if err != nil {
+		return err
+	}
 	conns := p4rtclient.NewConnManager()
 
-	m.controller = controller.NewController(m.Config.RealmOptions, m.configStore, m.Config.TopoAddress, conns, opts...)
-	m.controller.Start()
+	targetController := target.NewController(topoStore, conns, m.Config.RealmOptions)
+	err = targetController.Start()
+	if err != nil {
+		return err
+	}
+
+	pipelineController := pipeline.NewController(topoStore, conns, configStore, m.Config.RealmOptions)
+	err = pipelineController.Start()
+	if err != nil {
+		return err
+	}
+
+	chassisController := chassis.NewController(topoStore, configStore, m.Config.RealmOptions)
+	err = chassisController.Start()
+	if err != nil {
+		return err
+	}
 
 	// Start NB server
 	s := northbound.NewServer(cli.ServerConfigFromFlags(m.Config.ServiceFlags, northbound.SecurityConfig{}))
 	s.AddService(logging.Service{})
-	s.AddService(nb.NewService(m.controller, m.configStore))
+	s.AddService(nb.NewService(configStore))
 	return s.StartInBackground()
 }
 
 // Stop stops the manager
 func (m *Manager) Stop() {
 	log.Info("Stopping Manager")
-	m.controller.Stop()
 }
