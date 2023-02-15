@@ -8,11 +8,12 @@ package pipeline
 import (
 	"context"
 	"github.com/onosproject/device-provisioner/pkg/controller/utils"
+	"github.com/onosproject/device-provisioner/pkg/controller/watchers"
 	configstore "github.com/onosproject/device-provisioner/pkg/store/pipelineconfig"
 	"github.com/onosproject/device-provisioner/pkg/store/topo"
 	provisionerapi "github.com/onosproject/onos-api/go/onos/provisioner"
 	topoapi "github.com/onosproject/onos-api/go/onos/topo"
-	"github.com/onosproject/onos-lib-go/pkg/controller"
+	"github.com/onosproject/onos-lib-go/pkg/controller/v2"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-net-lib/pkg/p4rtclient"
@@ -33,55 +34,63 @@ const (
 	requeueTimeout      = 2 * time.Minute
 )
 
-// NewController returns a new pipeline and chassis configuration controller
-func NewController(topo topo.Store, conns p4rtclient.ConnManager, configStore configstore.ConfigStore, realmOptions *realm.Options) *controller.Controller {
-	c := controller.NewController("configuration")
-	c.Watch(&TopoWatcher{
+// NewReconciler returns a new pipeline reconciler
+func NewReconciler(topo topo.Store, conns p4rtclient.ConnManager, configStore configstore.ConfigStore, realmOptions *realm.Options) *Reconciler {
+	reconciler := &Reconciler{
+		conns:        conns,
 		topo:         topo,
+		configStore:  configStore,
 		realmOptions: realmOptions,
-	})
+	}
+	return reconciler
 
-	c.Reconcile(&Reconciler{
-		topo:        topo,
-		conns:       conns,
-		configStore: configStore,
-	})
-	return c
 }
 
 // Reconciler reconciles pipeline configuration
 type Reconciler struct {
-	conns       p4rtclient.ConnManager
-	topo        topo.Store
-	configStore configstore.ConfigStore
+	conns        p4rtclient.ConnManager
+	topo         topo.Store
+	configStore  configstore.ConfigStore
+	realmOptions *realm.Options
+}
+
+// Start starts new reconciler
+func (r *Reconciler) Start() error {
+	topoWatcher := watchers.TopoWatcher{
+		Topo:         r.topo,
+		RealmOptions: r.realmOptions,
+	}
+	err := topoWatcher.Start(r.Reconcile)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // Reconcile reconciles device pipeline config
-func (r *Reconciler) Reconcile(id controller.ID) (controller.Result, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+func (r *Reconciler) Reconcile(ctx context.Context, request controller.Request[topoapi.ID]) controller.Directive[topoapi.ID] {
+	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
 
-	targetID := id.Value.(topoapi.ID)
+	targetID := request.ID
 	log.Infow("Reconciling device pipeline config", "targetID", targetID)
 
 	target, err := r.topo.Get(ctx, targetID)
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			log.Warnw("Failed reconciling device pipeline config", "targetID", targetID, "error", err)
-			return controller.Result{}, err
+			return request.Retry(err)
 		}
-		return controller.Result{}, nil
+		return request.Ack()
 	}
 
 	err = r.reconcilePipelineConfiguration(ctx, target)
 	if err != nil {
 		log.Warnw("Failed reconciling device pipeline configuration", "targetID", targetID, "error", err)
-		return controller.Result{}, err
+		return request.Retry(err)
 	}
 
-	return controller.Result{
-		RequeueAfter: requeueTimeout,
-	}, nil
+	return request.Retry(nil).After(requeueTimeout)
 }
 
 func (r *Reconciler) reconcilePipelineConfiguration(ctx context.Context, target *topoapi.Object) error {

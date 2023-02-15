@@ -63,20 +63,20 @@ func (m *Manager) Start() error {
 	}
 	conns := p4rtclient.NewConnManager()
 
-	targetController := target.NewController(topoStore, conns, m.Config.RealmOptions)
-	err = targetController.Start()
+	targetReconciler := target.NewReconciler(topoStore, conns, m.Config.RealmOptions)
+	err = targetReconciler.Start()
 	if err != nil {
 		return err
 	}
 
-	pipelineController := pipeline.NewController(topoStore, conns, configStore, m.Config.RealmOptions)
-	err = pipelineController.Start()
+	pipelineReconciler := pipeline.NewReconciler(topoStore, conns, configStore, m.Config.RealmOptions)
+	err = pipelineReconciler.Start()
 	if err != nil {
 		return err
 	}
 
-	chassisController := chassis.NewController(topoStore, configStore, m.Config.RealmOptions)
-	err = chassisController.Start()
+	chassisReconciler := chassis.NewReconciler(topoStore, configStore, m.Config.RealmOptions)
+	err = chassisReconciler.Start()
 	if err != nil {
 		return err
 	}
