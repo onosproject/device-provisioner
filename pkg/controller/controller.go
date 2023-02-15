@@ -11,6 +11,7 @@ import (
 	"github.com/onosproject/onos-api/go/onos/topo"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-net-lib/pkg/p4rtclient"
+	"github.com/onosproject/onos-net-lib/pkg/realm"
 	"google.golang.org/grpc"
 	"sync"
 	"time"
@@ -43,9 +44,8 @@ const (
 
 // Controller drives the device provisioning control logic
 type Controller struct {
-	realmLabel string
-	realmValue string
-	state      State
+	realmOptions *realm.Options
+	state        State
 
 	lock        sync.RWMutex
 	configStore store.ConfigStore
@@ -62,16 +62,15 @@ type Controller struct {
 }
 
 // NewController creates a new device provisioner controller
-func NewController(realmLabel string, realmValue string, configStore store.ConfigStore, topoAddress string, conns p4rtclient.ConnManager, topoOpts ...grpc.DialOption) *Controller {
+func NewController(realmOptions *realm.Options, configStore store.ConfigStore, topoAddress string, conns p4rtclient.ConnManager, topoOpts ...grpc.DialOption) *Controller {
 	opts := append(topoOpts, grpc.WithBlock())
 	return &Controller{
-		realmLabel:  realmLabel,
-		realmValue:  realmValue,
-		configStore: configStore,
-		topoAddress: topoAddress,
-		topoOpts:    opts,
-		workingOn:   make(map[topo.ID]*topo.Object),
-		conns:       conns,
+		realmOptions: realmOptions,
+		configStore:  configStore,
+		topoAddress:  topoAddress,
+		topoOpts:     opts,
+		workingOn:    make(map[topo.ID]*topo.Object),
+		conns:        conns,
 	}
 }
 
