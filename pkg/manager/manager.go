@@ -11,7 +11,7 @@ import (
 	"github.com/onosproject/device-provisioner/pkg/controller/pipeline"
 	"github.com/onosproject/device-provisioner/pkg/controller/target"
 	nb "github.com/onosproject/device-provisioner/pkg/northbound"
-	"github.com/onosproject/device-provisioner/pkg/store/pipelineconfig"
+	"github.com/onosproject/device-provisioner/pkg/store/configs"
 	"github.com/onosproject/device-provisioner/pkg/store/topo"
 	"github.com/onosproject/onos-lib-go/pkg/certs"
 	"github.com/onosproject/onos-lib-go/pkg/cli"
@@ -57,7 +57,7 @@ func (m *Manager) Start() error {
 		return err
 	}
 
-	configStore, err := pipelineconfig.NewAtomixStore(client.NewClient(), m.Config.ArtifactDir)
+	configStore, err := configs.NewAtomixStore(client.NewClient(), m.Config.ArtifactDir)
 	if err != nil {
 		return err
 	}

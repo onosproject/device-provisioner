@@ -8,7 +8,7 @@ package utils
 import (
 	"context"
 	"github.com/gogo/protobuf/proto"
-	configstore "github.com/onosproject/device-provisioner/pkg/store/pipelineconfig"
+	configstore "github.com/onosproject/device-provisioner/pkg/store/configs"
 	"github.com/onosproject/device-provisioner/pkg/store/topo"
 	"github.com/onosproject/onos-api/go/onos/provisioner"
 	topoapi "github.com/onosproject/onos-api/go/onos/topo"

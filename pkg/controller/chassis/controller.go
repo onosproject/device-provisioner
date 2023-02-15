@@ -10,7 +10,7 @@ import (
 	"github.com/onosproject/device-provisioner/pkg/controller/utils"
 	"github.com/onosproject/device-provisioner/pkg/controller/watchers"
 	"github.com/onosproject/device-provisioner/pkg/southbound"
-	configstore "github.com/onosproject/device-provisioner/pkg/store/pipelineconfig"
+	configstore "github.com/onosproject/device-provisioner/pkg/store/configs"
 	"github.com/onosproject/device-provisioner/pkg/store/topo"
 	provisionerapi "github.com/onosproject/onos-api/go/onos/provisioner"
 	topoapi "github.com/onosproject/onos-api/go/onos/topo"
@@ -25,7 +25,7 @@ var log = logging.GetLogger()
 
 const (
 	defaultTimeout = 30 * time.Second
-	requeueTimeout = 2 * time.Minute
+	requeueTimeout = 10 * time.Second
 )
 
 // NewReconciler returns a new chassis reconciler
@@ -81,7 +81,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, request controller.Request[t
 		log.Warnw("Failed reconciling chassis config", "targetID", targetID, "error", err)
 		return request.Retry(err)
 	}
-	return request.Retry(nil).After(requeueTimeout)
+	return request.Ack()
 }
 
 func (r *Reconciler) reconcileChassisConfiguration(ctx context.Context, target *topoapi.Object) error {
