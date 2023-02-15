@@ -27,7 +27,8 @@ const (
 func NewController(topo topo.Store, conns p4rtclient.ConnManager, realmOptions *realm.Options) *controller.Controller {
 	c := controller.NewController("target")
 	c.Watch(&TopoWatcher{
-		topo: topo,
+		topo:         topo,
+		realmOptions: realmOptions,
 	})
 	c.Watch(&ConnWatcher{
 		conns: conns,

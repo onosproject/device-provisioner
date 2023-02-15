@@ -6,7 +6,6 @@ require (
 	github.com/atomix/go-sdk v0.12.7
 	github.com/gogo/protobuf v1.3.2
 	github.com/onosproject/onos-api/go v0.10.21
-	github.com/onosproject/onos-net-lib v1.1.7
 	github.com/onosproject/onos-lib-go v0.10.8
 	github.com/onosproject/onos-net-lib v1.1.7
 	github.com/openconfig/gnmi v0.0.0-20220920173703-480bf53a74d2

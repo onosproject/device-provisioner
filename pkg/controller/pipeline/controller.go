@@ -37,7 +37,8 @@ const (
 func NewController(topo topo.Store, conns p4rtclient.ConnManager, configStore configstore.ConfigStore, realmOptions *realm.Options) *controller.Controller {
 	c := controller.NewController("configuration")
 	c.Watch(&TopoWatcher{
-		topo: topo,
+		topo:         topo,
+		realmOptions: realmOptions,
 	})
 
 	c.Reconcile(&Reconciler{
