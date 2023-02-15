@@ -35,7 +35,7 @@ func (w *TopoWatcher) Start(ch chan<- controller.ID) error {
 	eventCh := make(chan topoapi.Event, queueSize)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	filter := utils.RealmQueryFilter(w.realmOptions.Label, w.realmOptions.Value)
+	filter := utils.RealmQueryFilter(w.realmOptions)
 	err := w.topo.Watch(ctx, eventCh, filter)
 	if err != nil {
 		cancel()
