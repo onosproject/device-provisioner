@@ -55,7 +55,7 @@ func (s *TestSuite) TestPipelineBasics(t *testing.T) {
 
 	// Create topo object for our topology with device config aspect
 	object := topo.NewEntity(topo.ID("spine1"), topo.SwitchKind)
-	object.Labels = map[string]string{"pod": "all"}
+	object.Labels = map[string]string{"realm": "pod01"}
 	_, err = object.WithAspects(
 		&topo.StratumAgents{P4RTEndpoint: &topo.Endpoint{Address: "fabric-sim", Port: 20000}},
 		&provisioner.DeviceConfig{PipelineConfigID: pipelineConfigName},
@@ -121,7 +121,7 @@ func (s *TestSuite) TestChassisBasics(t *testing.T) {
 
 	// Create topo object for our topology with device config aspect
 	object := topo.NewEntity(topo.ID("spine2"), topo.SwitchKind)
-	object.Labels = map[string]string{"pod": "all"}
+	object.Labels = map[string]string{"realm": "pod01"}
 	_, err = object.WithAspects(
 		&topo.StratumAgents{GNMIEndpoint: &topo.Endpoint{Address: "fabric-sim", Port: 20001}},
 		&provisioner.DeviceConfig{ChassisConfigID: chassisConfigName},
@@ -174,7 +174,7 @@ func getConnections(t *testing.T) (topo.TopoClient, provisioner.ProvisionerServi
 	topoConn, err := libtest.CreateConnection("onos-topo:5150", false)
 	assert.NoError(t, err)
 
-	provConn, err := libtest.CreateConnection("device-provisioner:5150", false)
+	provConn, err := libtest.CreateConnection("onos-umbrella-device-provisioner:5150", false)
 	assert.NoError(t, err)
 
 	topoClient := topo.NewTopoClient(topoConn)

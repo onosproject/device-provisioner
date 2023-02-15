@@ -41,8 +41,7 @@ func (c *Controller) runInitialReconciliationSweep() {
 // Runs reconciliation sweep for all objects in our realm
 func (c *Controller) runFullReconciliationSweep() error {
 	log.Info("Starting full reconciliation sweep...")
-	filter := queryFilter(c.realmLabel, c.realmValue)
-	if entities, err := c.topoClient.Query(c.ctx, &topo.QueryRequest{Filters: filter}); err == nil {
+	if entities, err := c.topoClient.Query(c.ctx, &topo.QueryRequest{Filters: c.queryFilter()}); err == nil {
 		for c.getState() != Stopped {
 			if entity, err := entities.Recv(); err == nil {
 				c.queue <- entity.Object
@@ -61,21 +60,14 @@ func (c *Controller) runFullReconciliationSweep() error {
 	return nil
 }
 
-// Returns filters for matching objects on realm label, entity type and with DeviceConfig aspect.
-func queryFilter(realmLabel string, realmValue string) *topo.Filters {
-	return &topo.Filters{
-		LabelFilters: []*topo.Filter{{
-			Filter: &topo.Filter_Equal_{Equal_: &topo.EqualFilter{Value: realmValue}},
-			Key:    realmLabel,
-		}},
-		ObjectTypes: []topo.Object_Type{topo.Object_ENTITY},
-		WithAspects: []string{"onos.provisioner.DeviceConfig", "onos.topo.StratumAgents"},
-	}
+// Returns filters for matching realm entities with DeviceConfig and StratumAgents aspects.
+func (c *Controller) queryFilter() *topo.Filters {
+	return c.realmOptions.QueryFilter("onos.provisioner.DeviceConfig", "onos.topo.StratumAgents")
 }
 
 // Setup watch for updates using onos-topo API
 func (c *Controller) prepareForMonitoring() {
-	filter := queryFilter(c.realmLabel, c.realmValue)
+	filter := c.queryFilter()
 	log.Infof("Starting to watch onos-topo via %+v", filter)
 	stream, err := c.topoClient.Watch(c.ctx, &topo.WatchRequest{Filters: filter})
 	if err != nil {
