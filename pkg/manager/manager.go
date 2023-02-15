@@ -66,19 +66,19 @@ func (m *Manager) Start() error {
 	}
 	conns := p4rtclient.NewConnManager()
 
-	targetController := target.NewController(topoStore, conns, m.Config.RealmLabel, m.Config.RealmValue)
+	targetController := target.NewController(topoStore, conns, m.Config.RealmOptions)
 	err = targetController.Start()
 	if err != nil {
 		return err
 	}
 
-	pipelineController := pipeline.NewController(topoStore, conns, configStore, m.Config.RealmLabel, m.Config.RealmValue)
+	pipelineController := pipeline.NewController(topoStore, conns, configStore, m.Config.RealmOptions)
 	err = pipelineController.Start()
 	if err != nil {
 		return err
 	}
 
-	chassisController := chassis.NewController(topoStore, configStore, m.Config.RealmLabel, m.Config.RealmValue)
+	chassisController := chassis.NewController(topoStore, configStore, m.Config.RealmOptions)
 	err = chassisController.Start()
 	if err != nil {
 		return err

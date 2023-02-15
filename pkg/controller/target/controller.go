@@ -13,6 +13,7 @@ import (
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-net-lib/pkg/p4rtclient"
+	"github.com/onosproject/onos-net-lib/pkg/realm"
 	"time"
 )
 
@@ -23,12 +24,10 @@ const (
 )
 
 // NewController returns a new gNMI connection  controller
-func NewController(topo topo.Store, conns p4rtclient.ConnManager, realmLabel string, realmValue string) *controller.Controller {
+func NewController(topo topo.Store, conns p4rtclient.ConnManager, realmOptions *realm.Options) *controller.Controller {
 	c := controller.NewController("target")
 	c.Watch(&TopoWatcher{
-		topo:       topo,
-		realmValue: realmValue,
-		realmLabel: realmLabel,
+		topo: topo,
 	})
 	c.Watch(&ConnWatcher{
 		conns: conns,

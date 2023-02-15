@@ -10,6 +10,7 @@ import (
 	"github.com/onosproject/device-provisioner/pkg/store/topo"
 	topoapi "github.com/onosproject/onos-api/go/onos/topo"
 	"github.com/onosproject/onos-lib-go/pkg/controller"
+	"github.com/onosproject/onos-net-lib/pkg/realm"
 	"sync"
 )
 
@@ -17,11 +18,10 @@ const queueSize = 100
 
 // TopoWatcher is a topology watcher
 type TopoWatcher struct {
-	topo       topo.Store
-	cancel     context.CancelFunc
-	mu         sync.Mutex
-	realmLabel string
-	realmValue string
+	topo         topo.Store
+	cancel       context.CancelFunc
+	mu           sync.Mutex
+	realmOptions *realm.Options
 }
 
 // Start starts the topo store watcher
@@ -35,7 +35,7 @@ func (w *TopoWatcher) Start(ch chan<- controller.ID) error {
 	eventCh := make(chan topoapi.Event, queueSize)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	filter := utils.RealmQueryFilter(w.realmLabel, w.realmValue)
+	filter := utils.RealmQueryFilter(w.realmOptions)
 	err := w.topo.Watch(ctx, eventCh, filter)
 	if err != nil {
 		cancel()

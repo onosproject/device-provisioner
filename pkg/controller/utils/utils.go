@@ -14,6 +14,7 @@ import (
 	topoapi "github.com/onosproject/onos-api/go/onos/topo"
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
+	"github.com/onosproject/onos-net-lib/pkg/realm"
 )
 
 var log = logging.GetLogger()
@@ -42,11 +43,11 @@ func GetArtifacts(ctx context.Context, configStore configstore.ConfigStore, conf
 }
 
 // RealmQueryFilter Returns filters for matching objects on realm label, entity type and with DeviceConfig aspect.
-func RealmQueryFilter(realmLabel string, realmValue string) *topoapi.Filters {
+func RealmQueryFilter(realmOptions *realm.Options) *topoapi.Filters {
 	return &topoapi.Filters{
 		LabelFilters: []*topoapi.Filter{{
-			Filter: &topoapi.Filter_Equal_{Equal_: &topoapi.EqualFilter{Value: realmValue}},
-			Key:    realmLabel,
+			Filter: &topoapi.Filter_Equal_{Equal_: &topoapi.EqualFilter{Value: realmOptions.Value}},
+			Key:    realmOptions.Label,
 		}},
 		ObjectTypes: []topoapi.Object_Type{topoapi.Object_ENTITY},
 		WithAspects: []string{"onos.provisioner.DeviceConfig", "onos.topo.StratumAgents"},

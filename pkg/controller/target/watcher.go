@@ -6,7 +6,9 @@ package target
 
 import (
 	"context"
+	"github.com/onosproject/device-provisioner/pkg/controller/utils"
 	"github.com/onosproject/onos-net-lib/pkg/p4rtclient"
+	"github.com/onosproject/onos-net-lib/pkg/realm"
 	"sync"
 
 	topoapi "github.com/onosproject/onos-api/go/onos/topo"
@@ -19,11 +21,10 @@ const queueSize = 100
 
 // TopoWatcher is a topology watcher
 type TopoWatcher struct {
-	topo       topo.Store
-	cancel     context.CancelFunc
-	mu         sync.Mutex
-	realmLabel string
-	realmValue string
+	topo         topo.Store
+	cancel       context.CancelFunc
+	mu           sync.Mutex
+	realmOptions *realm.Options
 }
 
 // Start starts the topo store watcher
@@ -37,7 +38,7 @@ func (w *TopoWatcher) Start(ch chan<- controller.ID) error {
 	eventCh := make(chan topoapi.Event, queueSize)
 	ctx, cancel := context.WithCancel(context.Background())
 
-	filter := queryFilter(w.realmLabel, w.realmValue)
+	filter := utils.RealmQueryFilter(w.realmOptions)
 	err := w.topo.Watch(ctx, eventCh, filter)
 	if err != nil {
 		cancel()
@@ -63,18 +64,6 @@ func (w *TopoWatcher) Stop() {
 		w.cancel = nil
 	}
 	w.mu.Unlock()
-}
-
-// Returns filters for matching objects on realm label, entity type and with DeviceConfig aspect.
-func queryFilter(realmLabel string, realmValue string) *topoapi.Filters {
-	return &topoapi.Filters{
-		LabelFilters: []*topoapi.Filter{{
-			Filter: &topoapi.Filter_Equal_{Equal_: &topoapi.EqualFilter{Value: realmValue}},
-			Key:    realmLabel,
-		}},
-		ObjectTypes: []topoapi.Object_Type{topoapi.Object_ENTITY},
-		WithAspects: []string{"onos.provisioner.DeviceConfig", "onos.topo.StratumAgents"},
-	}
 }
 
 // ConnWatcher is a P4RT connection watcher

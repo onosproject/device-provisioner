@@ -17,6 +17,7 @@ import (
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-net-lib/pkg/p4rtclient"
 	"github.com/onosproject/onos-net-lib/pkg/p4utils"
+	"github.com/onosproject/onos-net-lib/pkg/realm"
 	p4info "github.com/p4lang/p4runtime/go/p4/config/v1"
 	p4api "github.com/p4lang/p4runtime/go/p4/v1"
 	"google.golang.org/protobuf/encoding/prototext"
@@ -33,12 +34,10 @@ const (
 )
 
 // NewController returns a new pipeline and chassis configuration controller
-func NewController(topo topo.Store, conns p4rtclient.ConnManager, configStore configstore.ConfigStore, realmLabel string, realmValue string) *controller.Controller {
+func NewController(topo topo.Store, conns p4rtclient.ConnManager, configStore configstore.ConfigStore, realmOptions *realm.Options) *controller.Controller {
 	c := controller.NewController("configuration")
 	c.Watch(&TopoWatcher{
-		topo:       topo,
-		realmValue: realmValue,
-		realmLabel: realmLabel,
+		topo: topo,
 	})
 
 	c.Reconcile(&Reconciler{

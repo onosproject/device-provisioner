@@ -55,8 +55,6 @@ github.com/atomix/atomix/sidecar v0.4.4 h1:CjLPA3p1V83Tx2yxUGz4JLyQkeyXC8/1xXaiZ
 github.com/atomix/atomix/sidecar v0.4.4/go.mod h1:psygbD10K+EdWS1XINexXP0QmiAd+yY2tGkIGqrVMHM=
 github.com/atomix/go-sdk v0.12.7 h1:mNj44w930GMb6Sik60LbPhcS52LLqnWvQBVmSRT4jIU=
 github.com/atomix/go-sdk v0.12.7/go.mod h1:Ua1SPP/5qms2DZrpVeH+RrIvbviIEExKEijlgZHMWng=
-github.com/atomix/runtime/sdk v0.7.4 h1:9jAAY85/pZMwejg3zhGr0/S2svebriEXlsu2QZ4+bQU=
-github.com/atomix/runtime/sdk v0.7.4/go.mod h1:CIxhWG1UkcWL82+XJ1wwynz1T5k4nYTZdwNlWp8IMd8=
 github.com/benbjohnson/clock v1.1.0 h1:Q92kusRqC1XV2MjkWETPvjJVqKetz1OzxZB7mHJLju8=
 github.com/bits-and-blooms/bitset v1.3.1 h1:y+qrlmq3XsWi+xZqSaueaE8ry8Y127iMxlMfqcK8p0g=
 github.com/bits-and-blooms/bitset v1.3.1/go.mod h1:gIdJ4wp64HaoK2YrL1Q5/N7Y16edYb8uY+O0FJTyyDA=
@@ -235,15 +233,16 @@ github.com/mitchellh/mapstructure v1.4.3 h1:OVowDSCllw/YjdLkam3/sm7wEtOy59d8ndGg
 github.com/mitchellh/mapstructure v1.4.3/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
 github.com/onosproject/onos-lib-go v0.10.5 h1:WB3SqLetquDF3YK5Ampm586qfMmoUew4WbI1rz71YQg=
 github.com/onosproject/onos-lib-go v0.10.5/go.mod h1:BW7ofxESngKlsUw6YmO/hbUrbmL3sNxdXkzZkDev/tE=
-<<<<<<< HEAD
 github.com/onosproject/onos-net-lib v1.1.7 h1:iEHLqoDSWcREBmlJxxWPOw2L4rCA6F8U3vzAkFwKQm4=
 github.com/onosproject/onos-net-lib v1.1.7/go.mod h1:3JmQ7LaNz1J2XIlT4sKoct2237WnVrXg+AWxhOkkUXA=
-=======
 github.com/onosproject/onos-lib-go v0.10.8 h1:eFGCLF5ANNGBthg5GqCmVxPWclxSZ86vrJR9skNnW6E=
 github.com/onosproject/onos-lib-go v0.10.8/go.mod h1:7WJKZwkje6ft9vAHP+PHDsRJo4dMl5wqtIOavLJ0h6w=
 github.com/onosproject/onos-net-lib v1.1.4 h1:Q0uB8iJwFTEPd3nrSaj+UXUZNo0moraIM65BEvZkHXw=
 github.com/onosproject/onos-net-lib v1.1.4/go.mod h1:Fpe3V3NtcSQGdLO1IeO50JHEcGba55zyuskjPBk8qnM=
->>>>>>> 286d7fa (update onos-lib-go)
+github.com/onosproject/onos-lib-go v0.10.8 h1:eFGCLF5ANNGBthg5GqCmVxPWclxSZ86vrJR9skNnW6E=
+github.com/onosproject/onos-lib-go v0.10.8/go.mod h1:7WJKZwkje6ft9vAHP+PHDsRJo4dMl5wqtIOavLJ0h6w=
+github.com/onosproject/onos-net-lib v1.1.7 h1:iEHLqoDSWcREBmlJxxWPOw2L4rCA6F8U3vzAkFwKQm4=
+github.com/onosproject/onos-net-lib v1.1.7/go.mod h1:3JmQ7LaNz1J2XIlT4sKoct2237WnVrXg+AWxhOkkUXA=
 github.com/openconfig/gnmi v0.0.0-20220920173703-480bf53a74d2 h1:3YLlQFLDsFTvruKoYBbuYqhCgsXMtNewSrLjNXcF/Sg=
 github.com/openconfig/gnmi v0.0.0-20220920173703-480bf53a74d2/go.mod h1:Y9os75GmSkhHw2wX8sMsxfI7qRGAEcDh8NTa5a8vj6E=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=
