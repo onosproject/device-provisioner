@@ -817,6 +817,8 @@ github.com/onosproject/fabric-sim/test v0.0.0-20230131205021-b52b4acceb4b h1:093
 github.com/onosproject/fabric-sim/test v0.0.0-20230131205021-b52b4acceb4b/go.mod h1:s/0PIcFIWL1Cu59pKfiReLg7g3hgj5ZZ8bqxFwDx6IU=
 github.com/onosproject/helmit v0.6.20 h1:C0GwoPAgo5+RRxGcPKDDSiNqqDg52o4nDN6Bqon4dRQ=
 github.com/onosproject/helmit v0.6.20/go.mod h1:Q6g2fjZkoG9heTCp3R7VBtTka5jMAeKNreG9rXGCc/A=
+github.com/onosproject/onos-api/go v0.10.22 h1:NUd3a2R5vxIg8Qv3wrF7gyLFXrEbl7VQG5QPU5p2Utk=
+github.com/onosproject/onos-api/go v0.10.22/go.mod h1:R882+8UcxQBLpCopnnbBnemXtJ77UXnL2I1y5yHbq10=
 github.com/onosproject/onos-lib-go v0.8.1/go.mod h1:1klcUPfLoXPVu4fzM/sYi1V3Pggm2NRbY2fTzG2W1HY=
 github.com/onosproject/onos-lib-go v0.10.7 h1:fSEFis3ZX2E13s/CahK1vHJ1849tEFfQSA5LciVZWsw=
 github.com/onosproject/onos-lib-go v0.10.7/go.mod h1:7WJKZwkje6ft9vAHP+PHDsRJo4dMl5wqtIOavLJ0h6w=
