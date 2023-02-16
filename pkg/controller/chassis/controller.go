@@ -25,7 +25,7 @@ var log = logging.GetLogger()
 
 const (
 	defaultTimeout = 30 * time.Second
-	requeueTimeout = 10 * time.Second
+	queryPeriod    = 2 * time.Minute
 )
 
 // NewReconciler returns a new chassis reconciler
@@ -56,6 +56,17 @@ func (r *Reconciler) Start() error {
 	if err != nil {
 		return err
 	}
+
+	queryWatcher := watchers.TopoPeriodicWatcher{
+		Topo:         r.topo,
+		RealmOptions: r.realmOptions,
+		QueryPeriod:  queryPeriod,
+	}
+	err = queryWatcher.Start(r.Reconcile)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

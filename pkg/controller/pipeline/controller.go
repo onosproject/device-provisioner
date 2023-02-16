@@ -31,7 +31,7 @@ var log = logging.GetLogger()
 const (
 	defaultTimeout      = 30 * time.Second
 	provisionerRoleName = "provisioner"
-	requeueTimeout      = 10 * time.Second
+	queryPeriod         = 2 * time.Minute
 )
 
 // NewReconciler returns a new pipeline reconciler
@@ -60,10 +60,21 @@ func (r *Reconciler) Start() error {
 		Topo:         r.topo,
 		RealmOptions: r.realmOptions,
 	}
+
 	err := topoWatcher.Start(r.Reconcile)
 	if err != nil {
 		return err
 	}
+	queryWatcher := watchers.TopoPeriodicWatcher{
+		Topo:         r.topo,
+		RealmOptions: r.realmOptions,
+		QueryPeriod:  queryPeriod,
+	}
+	err = queryWatcher.Start(r.Reconcile)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

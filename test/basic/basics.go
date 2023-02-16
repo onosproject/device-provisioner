@@ -57,11 +57,7 @@ func (s *TestSuite) TestPipelineBasics(t *testing.T) {
 	object := topo.NewEntity(topo.ID("spine1"), topo.SwitchKind)
 	object.Labels = map[string]string{"realm": "pod01"}
 	_, err = object.WithAspects(
-		&topo.StratumAgents{P4RTEndpoint: &topo.Endpoint{Address: "fabric-sim", Port: 20000},
-			GNMIEndpoint: &topo.Endpoint{
-				Address: "fabric-sim",
-				Port:    20000,
-			}},
+		&topo.StratumAgents{P4RTEndpoint: &topo.Endpoint{Address: "fabric-sim", Port: 20000}},
 		&provisioner.DeviceConfig{PipelineConfigID: pipelineConfigName},
 	)
 	assert.NoError(t, err)
@@ -127,8 +123,7 @@ func (s *TestSuite) TestChassisBasics(t *testing.T) {
 	object := topo.NewEntity(topo.ID("spine2"), topo.SwitchKind)
 	object.Labels = map[string]string{"realm": "pod01"}
 	_, err = object.WithAspects(
-		&topo.StratumAgents{GNMIEndpoint: &topo.Endpoint{Address: "fabric-sim", Port: 20001},
-			P4RTEndpoint: &topo.Endpoint{Address: "fabric-sim", Port: 20001}},
+		&topo.StratumAgents{GNMIEndpoint: &topo.Endpoint{Address: "fabric-sim", Port: 20001}},
 		&provisioner.DeviceConfig{ChassisConfigID: chassisConfigName},
 	)
 	assert.NoError(t, err)

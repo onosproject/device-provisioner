@@ -87,7 +87,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, request controller.Request[t
 	}
 
 	if stratumAgents.P4RTEndpoint == nil {
-		log.Errorw("Cannot find P4RT endpoint to make a connection to the target", "targetID", targetID)
+		log.Warnw("Cannot find P4RT endpoint to make a connection to the target", "targetID", targetID)
 		return request.Retry(err)
 	}
 
