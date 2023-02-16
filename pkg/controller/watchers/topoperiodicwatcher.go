@@ -38,25 +38,21 @@ func (w *TopoPeriodicWatcher) Start(reconcile controller.Reconciler[topoapi.ID])
 	queryPeriod := time.NewTicker(w.QueryPeriod)
 
 	go func() {
-		for {
-			select {
-			case <-queryPeriod.C:
-				eventCh := make(chan *topoapi.Object, queueSize)
-				err := w.Topo.Query(ctx, eventCh, filter)
-				if err != nil {
-					cancel()
-					break
-				}
-				w.cancel = cancel
-				for event := range eventCh {
-					if _, ok := event.Obj.(*topoapi.Object_Entity); ok {
-						reconcile(context.Background(), controller.Request[topoapi.ID]{
-							ID: event.ID,
-						})
+		for range queryPeriod.C {
+			eventCh := make(chan *topoapi.Object, queueSize)
+			err := w.Topo.Query(ctx, eventCh, filter)
+			if err != nil {
+				cancel()
+				break
+			}
+			w.cancel = cancel
+			for event := range eventCh {
+				if _, ok := event.Obj.(*topoapi.Object_Entity); ok {
+					reconcile(context.Background(), controller.Request[topoapi.ID]{
+						ID: event.ID,
+					})
 
-					}
 				}
-
 			}
 		}
 	}()

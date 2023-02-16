@@ -32,6 +32,7 @@ const (
 	defaultTimeout      = 30 * time.Second
 	provisionerRoleName = "provisioner"
 	queryPeriod         = 2 * time.Minute
+	pipelineKind        = "pipeline"
 )
 
 // NewReconciler returns a new pipeline reconciler
@@ -124,17 +125,18 @@ func (r *Reconciler) reconcilePipelineConfiguration(ctx context.Context, target 
 		pcState.ConfigID = deviceConfigAspect.PipelineConfigID
 		pcState.Updated = time.Now()
 		pcState.Status.State = provisionerapi.ConfigStatus_PENDING
-		err = utils.UpdateObjectAspect(ctx, r.topo, target, "pipeline", pcState)
+		err = utils.UpdateObjectAspect(ctx, r.topo, target, pipelineKind, pcState)
 		if err != nil {
 			return err
 		}
+		return nil
 	}
 
 	if pcState.ConfigID != deviceConfigAspect.PipelineConfigID {
 		pcState.ConfigID = deviceConfigAspect.PipelineConfigID
 		pcState.Updated = time.Now()
 		pcState.Status.State = provisionerapi.ConfigStatus_PENDING
-		err = utils.UpdateObjectAspect(ctx, r.topo, target, "pipeline", pcState)
+		err = utils.UpdateObjectAspect(ctx, r.topo, target, pipelineKind, pcState)
 		if err != nil {
 			return err
 		}

@@ -231,6 +231,8 @@ github.com/mitchellh/go-homedir v1.1.0 h1:lukF9ziXFxDFPkA1vsr5zpc1XuPDn/wFntq5mG
 github.com/mitchellh/go-homedir v1.1.0/go.mod h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=
 github.com/mitchellh/mapstructure v1.4.3 h1:OVowDSCllw/YjdLkam3/sm7wEtOy59d8ndGgCcyj8cs=
 github.com/mitchellh/mapstructure v1.4.3/go.mod h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=
+github.com/onosproject/onos-api/go v0.10.26 h1:jrdbpyqOWbUhtsNNFWYlISuQmjDFXnbChmgGunkpDvo=
+github.com/onosproject/onos-api/go v0.10.26/go.mod h1:R882+8UcxQBLpCopnnbBnemXtJ77UXnL2I1y5yHbq10=
 github.com/onosproject/onos-lib-go v0.10.8 h1:eFGCLF5ANNGBthg5GqCmVxPWclxSZ86vrJR9skNnW6E=
 github.com/onosproject/onos-lib-go v0.10.8/go.mod h1:7WJKZwkje6ft9vAHP+PHDsRJo4dMl5wqtIOavLJ0h6w=
 github.com/onosproject/onos-net-lib v1.1.7 h1:iEHLqoDSWcREBmlJxxWPOw2L4rCA6F8U3vzAkFwKQm4=
