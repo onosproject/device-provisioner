@@ -5,9 +5,9 @@ go 1.19
 require (
 	github.com/atomix/go-sdk v0.12.7
 	github.com/gogo/protobuf v1.3.2
-	github.com/onosproject/onos-api/go v0.10.21
-	github.com/onosproject/onos-lib-go v0.10.5
-	github.com/onosproject/onos-net-lib v1.1.7
+	github.com/onosproject/onos-api/go v0.10.26
+	github.com/onosproject/onos-lib-go v0.10.8
+	github.com/onosproject/onos-net-lib v1.1.8
 	github.com/openconfig/gnmi v0.0.0-20220920173703-480bf53a74d2
 	github.com/p4lang/p4runtime v1.4.0-rc.5
 	github.com/spf13/cobra v1.5.0
@@ -22,7 +22,6 @@ require (
 	github.com/atomix/atomix/protocols/rsm v0.5.6 // indirect
 	github.com/atomix/atomix/runtime v0.9.0 // indirect
 	github.com/atomix/atomix/sidecar v0.4.4 // indirect
-	github.com/atomix/runtime/sdk v0.7.4 // indirect
 	github.com/bits-and-blooms/bitset v1.3.1 // indirect
 	github.com/bits-and-blooms/bloom/v3 v3.3.1 // indirect
 	github.com/cenkalti/backoff v2.2.1+incompatible // indirect

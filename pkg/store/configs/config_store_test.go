@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package store
+package configs
 
 import (
 	"context"
@@ -18,7 +18,7 @@ const (
 	artifactsDir = "/tmp/artifacts"
 )
 
-func TestTopoStore(t *testing.T) {
+func TestConfigStore(t *testing.T) {
 	cluster := test.NewClient()
 	defer cluster.Close()
 

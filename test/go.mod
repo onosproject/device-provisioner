@@ -6,7 +6,7 @@ require (
 	github.com/onosproject/fabric-sim v1.0.2
 	github.com/onosproject/fabric-sim/test v0.0.0-20230131205021-b52b4acceb4b
 	github.com/onosproject/helmit v0.6.20
-	github.com/onosproject/onos-api/go v0.10.22
+	github.com/onosproject/onos-api/go v0.10.26
 	github.com/onosproject/onos-lib-go v0.10.7
 	github.com/onosproject/onos-net-lib v1.1.6
 	github.com/onosproject/onos-test v0.6.6
