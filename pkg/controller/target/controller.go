@@ -21,10 +21,9 @@ import (
 
 var log = logging.GetLogger()
 
-const queueSize = 100
-
 const (
 	defaultTimeout = 30 * time.Second
+	queueSize      = 100
 )
 
 // NewManager returns a new p4rt connection reconciler
@@ -68,7 +67,7 @@ func (m *Manager) Start() error {
 
 	go func() {
 		for conn := range m.connCh {
-			log.Debugw("Received P4RT Connection event for connection", "connectionID", conn.ID())
+			log.Infow("Received P4RT Connection event for connection", "connectionID", conn.ID())
 			err = targetController.Reconcile(conn.TargetID())
 			if err != nil {
 				log.Warnw("Failed to reconcile connection", "TargetID", conn.TargetID(), "error", err)
@@ -100,9 +99,6 @@ func (m *Manager) Start() error {
 
 // Reconcile reconciles a connection for a P4RT target
 func (m *Manager) reconcile(ctx context.Context, request controller.Request[topoapi.ID]) controller.Directive[topoapi.ID] {
-	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
-	defer cancel()
-
 	targetID := request.ID
 	log.Infow("Reconciling Target Connections", "targetID", targetID)
 	target, err := m.topo.Get(ctx, targetID)

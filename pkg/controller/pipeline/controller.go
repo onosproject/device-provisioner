@@ -28,13 +28,12 @@ import (
 
 var log = logging.GetLogger()
 
-const queueSize = 100
-
 const (
-	defaultTimeout      = 30 * time.Second
+	defaultTimeout      = 45 * time.Second
 	provisionerRoleName = "provisioner"
 	queryPeriod         = 10 * time.Second
 	pipelineKind        = "pipeline"
+	queueSize           = 100
 )
 
 // NewManager returns a new pipeline controller manager
@@ -94,9 +93,6 @@ func (m *Manager) Start() error {
 
 // Reconcile reconciles device pipeline config
 func (m *Manager) reconcile(ctx context.Context, request controller.Request[topoapi.ID]) controller.Directive[topoapi.ID] {
-	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
-	defer cancel()
-
 	targetID := request.ID
 	log.Infow("Reconciling device pipeline config", "targetID", targetID)
 
@@ -139,6 +135,7 @@ func (m *Manager) reconcilePipelineConfiguration(ctx context.Context, target *to
 		pcState.ConfigID = deviceConfigAspect.PipelineConfigID
 		pcState.Updated = time.Now()
 		pcState.Status.State = provisionerapi.ConfigStatus_PENDING
+		pcState.Cookie = 0
 		err = utils.UpdateObjectAspect(ctx, m.topo, target, pipelineKind, pcState)
 		if err != nil {
 			return err
@@ -150,6 +147,7 @@ func (m *Manager) reconcilePipelineConfiguration(ctx context.Context, target *to
 		pcState.ConfigID = deviceConfigAspect.PipelineConfigID
 		pcState.Updated = time.Now()
 		pcState.Status.State = provisionerapi.ConfigStatus_PENDING
+		pcState.Cookie = 0
 		err = utils.UpdateObjectAspect(ctx, m.topo, target, pipelineKind, pcState)
 		if err != nil {
 			return err
@@ -157,10 +155,10 @@ func (m *Manager) reconcilePipelineConfiguration(ctx context.Context, target *to
 		return nil
 	}
 
-	/*if pcState.Status.State != provisionerapi.ConfigStatus_PENDING {
+	if pcState.Status.State != provisionerapi.ConfigStatus_PENDING {
 		log.Infow("Device Pipeline config state is not in Pending state", "targetID", targetID, "ConfigState", pcState.Status.State)
 		return nil
-	}*/
+	}
 
 	// Otherwise... get the pipeline config artifacts
 	artifacts, err := utils.GetArtifacts(ctx, m.configStore, deviceConfigAspect.PipelineConfigID, 2)
@@ -169,58 +167,27 @@ func (m *Manager) reconcilePipelineConfiguration(ctx context.Context, target *to
 		return err
 	}
 
-	newCookie, err := m.setPipelineConfig(ctx, target, artifacts[provisionerapi.P4InfoType], artifacts[provisionerapi.P4BinaryType], pcState.Cookie)
-	if err != nil {
-		log.Warnw("Failed reconcile Stratum P4Runtime pipeline config", "targetID", targetID, "error", err)
-		pcState.ConfigID = deviceConfigAspect.PipelineConfigID
-		pcState.Updated = time.Now()
-		pcState.Status.State = provisionerapi.ConfigStatus_FAILED
-		pcState.Cookie = 0
-		err = utils.UpdateObjectAspect(ctx, m.topo, target, "pipeline", pcState)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-
-	if newCookie == pcState.Cookie {
-		return nil
-	}
-
-	// Update PipelineConfigState aspect
-	pcState.ConfigID = deviceConfigAspect.PipelineConfigID
-	pcState.Updated = time.Now()
-	pcState.Status.State = provisionerapi.ConfigStatus_APPLIED
-	pcState.Cookie = newCookie
-	err = utils.UpdateObjectAspect(ctx, m.topo, target, "pipeline", pcState)
-	if err != nil {
-		return err
-	}
-	log.Infow("Device pipeline config is set successfully", "targetID", targetID, "Status", pcState.Status.State)
-	return nil
-}
-
-// setPipelineConfig makes sure that the device has the given P4 pipeline configuration applied
-func (m *Manager) setPipelineConfig(ctx context.Context, target *topoapi.Object, info []byte, binary []byte, cookie uint64) (uint64, error) {
 	stratumAgents := &topoapi.StratumAgents{}
 	if err := target.GetAspect(stratumAgents); err != nil {
 		log.Warnw("Failed to extract stratum agents aspect", "error", err)
-		return 0, err
+		return err
 	}
 
 	p4rtConn, err := m.conns.GetByTarget(ctx, target.ID)
 	if err != nil {
 		log.Warnw("Connection not found for target", "target ID", target.ID)
-		return 0, err
+		return err
 	}
 
 	role := p4utils.NewStratumRole(provisionerRoleName, 0, []byte{}, false, true)
-	arbitrationResponse, err := p4rtConn.PerformMasterArbitration(role)
+	arbitrationResponse, err := p4rtConn.PerformMasterArbitration(ctx, role)
 	if err != nil {
 		log.Warnw("Failed to perform master arbitration", "error", err)
-		return 0, err
+		return err
 	}
+
 	electionID := arbitrationResponse.Arbitration.ElectionId
+	log.Info(electionID)
 	// ask for the pipeline config cookie
 	gr, err := p4rtConn.GetForwardingPipelineConfig(ctx, &p4api.GetForwardingPipelineConfigRequest{
 		DeviceId:     stratumAgents.DeviceID,
@@ -228,19 +195,21 @@ func (m *Manager) setPipelineConfig(ctx context.Context, target *topoapi.Object,
 	})
 	if err != nil {
 		log.Warnw("Failed to retrieve pipeline configuration", "error", err)
-		return 0, err
+		return err
 	}
 
 	// if that matches our cookie, we're good
-	if cookie == gr.Config.Cookie.Cookie && cookie > 0 {
-		return cookie, nil
+	if pcState.Cookie == gr.Config.Cookie.Cookie && pcState.Cookie > 0 {
+		return nil
 	}
 
+	info := artifacts[provisionerapi.P4InfoType]
+	binary := artifacts[provisionerapi.P4BinaryType]
 	// otherwise unmarshal the P4Info
 	p4i := &p4info.P4Info{}
 	if err = prototext.Unmarshal(info, p4i); err != nil {
 		log.Warnw("Failed to unmarshal p4info", "error", err)
-		return 0, err
+		return err
 	}
 
 	// and then apply it to the device
@@ -257,8 +226,19 @@ func (m *Manager) setPipelineConfig(ctx context.Context, target *topoapi.Object,
 		},
 	})
 	if err != nil {
-		return 0, err
+		log.Warnw("Failed to Set forwarding pipeline config", "targetID", targetID, "error", err)
+		return err
 	}
-	log.Infow("pipeline configured", "targetID", target.ID, "cookie", newCookie)
-	return newCookie, nil
+
+	// Update PipelineConfigState aspect
+	pcState.ConfigID = deviceConfigAspect.PipelineConfigID
+	pcState.Updated = time.Now()
+	pcState.Status.State = provisionerapi.ConfigStatus_APPLIED
+	pcState.Cookie = newCookie
+	err = utils.UpdateObjectAspect(ctx, m.topo, target, "pipeline", pcState)
+	if err != nil {
+		return err
+	}
+	log.Infow("Device pipeline config is set successfully", "targetID", targetID, "Status", pcState.Status.State)
+	return nil
 }

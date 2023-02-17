@@ -23,8 +23,11 @@ var log = logging.GetLogger()
 func GetArtifacts(ctx context.Context, configStore configstore.ConfigStore, configID provisioner.ConfigID, expectedNumber int) (configstore.Artifacts, error) {
 	record, err := configStore.Get(ctx, configID)
 	if err != nil {
-		log.Warnw("Unable to retrieve pipeline configuration", "configID", configID, "error", err)
-		return nil, err
+		if !errors.IsNotFound(err) {
+			log.Warnw("Unable to retrieve pipeline configuration", "configID", configID, "error", err)
+			return nil, err
+		}
+		return nil, nil
 	}
 
 	// ... and the associated artifacts
@@ -39,7 +42,7 @@ func GetArtifacts(ctx context.Context, configStore configstore.ConfigStore, conf
 		log.Warnw("Insufficient number of config artifacts found", "Number of artifacts", len(artifacts))
 		return nil, errors.NewInvalid("Insufficient number of config artifacts found")
 	}
-	return artifacts, err
+	return artifacts, nil
 }
 
 // RealmQueryFilter Returns filters for matching objects on realm label, entity type and with DeviceConfig aspect.

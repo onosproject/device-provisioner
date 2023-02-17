@@ -235,8 +235,8 @@ github.com/onosproject/onos-api/go v0.10.26 h1:jrdbpyqOWbUhtsNNFWYlISuQmjDFXnbCh
 github.com/onosproject/onos-api/go v0.10.26/go.mod h1:R882+8UcxQBLpCopnnbBnemXtJ77UXnL2I1y5yHbq10=
 github.com/onosproject/onos-lib-go v0.10.8 h1:eFGCLF5ANNGBthg5GqCmVxPWclxSZ86vrJR9skNnW6E=
 github.com/onosproject/onos-lib-go v0.10.8/go.mod h1:7WJKZwkje6ft9vAHP+PHDsRJo4dMl5wqtIOavLJ0h6w=
-github.com/onosproject/onos-net-lib v1.1.7 h1:iEHLqoDSWcREBmlJxxWPOw2L4rCA6F8U3vzAkFwKQm4=
-github.com/onosproject/onos-net-lib v1.1.7/go.mod h1:3JmQ7LaNz1J2XIlT4sKoct2237WnVrXg+AWxhOkkUXA=
+github.com/onosproject/onos-net-lib v1.1.8 h1:h56zMFjkTZ71Sjgn1cLMpc8QKxxxV7bvrH794CngQII=
+github.com/onosproject/onos-net-lib v1.1.8/go.mod h1:3JmQ7LaNz1J2XIlT4sKoct2237WnVrXg+AWxhOkkUXA=
 github.com/openconfig/gnmi v0.0.0-20220920173703-480bf53a74d2 h1:3YLlQFLDsFTvruKoYBbuYqhCgsXMtNewSrLjNXcF/Sg=
 github.com/openconfig/gnmi v0.0.0-20220920173703-480bf53a74d2/go.mod h1:Y9os75GmSkhHw2wX8sMsxfI7qRGAEcDh8NTa5a8vj6E=
 github.com/opentracing/opentracing-go v1.1.0/go.mod h1:UkNAQd3GIcIGf0SeVgPpRdFStlNbqXla1AfSYxPUl2o=

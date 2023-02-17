@@ -23,11 +23,10 @@ import (
 
 var log = logging.GetLogger()
 
-const queueSize = 100
-
 const (
 	defaultTimeout = 30 * time.Second
 	queryPeriod    = 2 * time.Minute
+	queueSize      = 100
 )
 
 // NewManager returns a new chassis controller manager
@@ -97,9 +96,6 @@ func (m *Manager) Stop() {
 
 // Reconcile reconciles device chassis configuration
 func (m *Manager) reconcile(ctx context.Context, request controller.Request[topoapi.ID]) controller.Directive[topoapi.ID] {
-	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
-	defer cancel()
-
 	targetID := request.ID
 	log.Infow("Reconciling chassis config", "targetID", targetID)
 
