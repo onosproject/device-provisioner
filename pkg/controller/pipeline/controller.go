@@ -30,7 +30,6 @@ var log = logging.GetLogger()
 
 const (
 	provisionerRoleName = "provisioner"
-	queryPeriod         = 10 * time.Second
 	pipelineKind        = "pipeline"
 	queueSize           = 100
 )
