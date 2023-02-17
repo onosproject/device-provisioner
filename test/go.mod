@@ -6,7 +6,7 @@ require (
 	github.com/onosproject/fabric-sim v1.0.2
 	github.com/onosproject/fabric-sim/test v0.0.0-20230131205021-b52b4acceb4b
 	github.com/onosproject/helmit v0.6.20
-	github.com/onosproject/onos-api/go v0.10.22
+	github.com/onosproject/onos-api/go v0.10.26
 	github.com/onosproject/onos-lib-go v0.10.7
 	github.com/onosproject/onos-net-lib v1.1.6
 	github.com/onosproject/onos-test v0.6.6
@@ -176,5 +176,3 @@ require (
 	sigs.k8s.io/structured-merge-diff/v4 v4.1.2 // indirect
 	sigs.k8s.io/yaml v1.2.0 // indirect
 )
-
-replace github.com/onosproject/onos-api/go => /Users/arastega/go/src/github.com/onosproject/onos-api/go
