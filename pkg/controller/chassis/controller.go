@@ -8,7 +8,6 @@ package chassis
 import (
 	"context"
 	"github.com/onosproject/device-provisioner/pkg/controller/utils"
-	"github.com/onosproject/device-provisioner/pkg/controller/watchers"
 	"github.com/onosproject/device-provisioner/pkg/southbound"
 	configstore "github.com/onosproject/device-provisioner/pkg/store/configs"
 	"github.com/onosproject/device-provisioner/pkg/store/topo"
@@ -18,67 +17,93 @@ import (
 	"github.com/onosproject/onos-lib-go/pkg/errors"
 	"github.com/onosproject/onos-lib-go/pkg/logging"
 	"github.com/onosproject/onos-net-lib/pkg/realm"
+	"sync"
 	"time"
 )
 
 var log = logging.GetLogger()
+
+const queueSize = 100
 
 const (
 	defaultTimeout = 30 * time.Second
 	queryPeriod    = 2 * time.Minute
 )
 
-// NewReconciler returns a new chassis reconciler
-func NewReconciler(topo topo.Store, configStore configstore.ConfigStore, realmOptions *realm.Options) *Reconciler {
-	reconciler := &Reconciler{
+// NewManager returns a new chassis controller manager
+func NewManager(topo topo.Store, configStore configstore.ConfigStore, realmOptions *realm.Options) *Manager {
+	manager := &Manager{
 		topo:         topo,
 		configStore:  configStore,
 		realmOptions: realmOptions,
 	}
-	return reconciler
+	return manager
 
 }
 
-// Reconciler reconciles chassis configuration
-type Reconciler struct {
+// Manager reconciles chassis configuration
+type Manager struct {
 	topo         topo.Store
 	configStore  configstore.ConfigStore
 	realmOptions *realm.Options
+	cancel       context.CancelFunc
+	mu           sync.Mutex
 }
 
-// Start starts new reconciler
-func (r *Reconciler) Start() error {
-	topoWatcher := watchers.TopoWatcher{
-		Topo:         r.topo,
-		RealmOptions: r.realmOptions,
+// Start starts manager
+func (m *Manager) Start() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.cancel != nil {
+		return nil
 	}
-	err := topoWatcher.Start(r.Reconcile)
-	if err != nil {
-		return err
-	}
+	chassisController := controller.NewController(m.reconcile)
 
-	queryWatcher := watchers.TopoPeriodicWatcher{
-		Topo:         r.topo,
-		RealmOptions: r.realmOptions,
-		QueryPeriod:  queryPeriod,
-	}
-	err = queryWatcher.Start(r.Reconcile)
+	eventCh := make(chan topoapi.Event, queueSize)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	filter := utils.RealmQueryFilter(m.realmOptions)
+	err := m.topo.Watch(ctx, eventCh, filter)
 	if err != nil {
+		cancel()
 		return err
 	}
+	m.cancel = cancel
+	go func() {
+		for event := range eventCh {
+			if _, ok := event.Object.Obj.(*topoapi.Object_Entity); ok {
+				err := chassisController.Reconcile(event.Object.ID)
+				if err != nil {
+					log.Warnw("Failed to reconcile object", "objectID", event.Object.ID, "error", err)
+				}
+
+			}
+		}
+	}()
 
 	return nil
+
+}
+
+// Stop stops the manager
+func (m *Manager) Stop() {
+	m.mu.Lock()
+	if m.cancel != nil {
+		m.cancel()
+		m.cancel = nil
+	}
+	m.mu.Unlock()
 }
 
 // Reconcile reconciles device chassis configuration
-func (r *Reconciler) Reconcile(ctx context.Context, request controller.Request[topoapi.ID]) controller.Directive[topoapi.ID] {
+func (m *Manager) reconcile(ctx context.Context, request controller.Request[topoapi.ID]) controller.Directive[topoapi.ID] {
 	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
 
 	targetID := request.ID
 	log.Infow("Reconciling chassis config", "targetID", targetID)
 
-	target, err := r.topo.Get(ctx, targetID)
+	target, err := m.topo.Get(ctx, targetID)
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			log.Warnw("Failed reconciling chassis config", "targetID", targetID, "error", err)
@@ -87,7 +112,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, request controller.Request[t
 		return request.Ack()
 	}
 
-	err = r.reconcileChassisConfiguration(ctx, target)
+	err = m.reconcileChassisConfiguration(ctx, target)
 	if err != nil {
 		log.Warnw("Failed reconciling chassis config", "targetID", targetID, "error", err)
 		return request.Retry(err)
@@ -95,7 +120,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, request controller.Request[t
 	return request.Ack()
 }
 
-func (r *Reconciler) reconcileChassisConfiguration(ctx context.Context, target *topoapi.Object) error {
+func (m *Manager) reconcileChassisConfiguration(ctx context.Context, target *topoapi.Object) error {
 	deviceConfigAspect := &provisionerapi.DeviceConfig{}
 	err := target.GetAspect(deviceConfigAspect)
 	if err != nil {
@@ -114,7 +139,7 @@ func (r *Reconciler) reconcileChassisConfiguration(ctx context.Context, target *
 		ccState.ConfigID = deviceConfigAspect.ChassisConfigID
 		ccState.Updated = time.Now()
 		ccState.Status.State = provisionerapi.ConfigStatus_PENDING
-		err = utils.UpdateObjectAspect(ctx, r.topo, target, "chassis", ccState)
+		err = utils.UpdateObjectAspect(ctx, m.topo, target, "chassis", ccState)
 		if err != nil {
 			return err
 		}
@@ -124,7 +149,7 @@ func (r *Reconciler) reconcileChassisConfiguration(ctx context.Context, target *
 		ccState.ConfigID = deviceConfigAspect.ChassisConfigID
 		ccState.Updated = time.Now()
 		ccState.Status.State = provisionerapi.ConfigStatus_PENDING
-		err = utils.UpdateObjectAspect(ctx, r.topo, target, "chassis", ccState)
+		err = utils.UpdateObjectAspect(ctx, m.topo, target, "chassis", ccState)
 		if err != nil {
 			return err
 		}
@@ -137,7 +162,7 @@ func (r *Reconciler) reconcileChassisConfiguration(ctx context.Context, target *
 	}
 
 	// get chassis configuration artifact
-	artifacts, err := utils.GetArtifacts(ctx, r.configStore, deviceConfigAspect.ChassisConfigID, 1)
+	artifacts, err := utils.GetArtifacts(ctx, m.configStore, deviceConfigAspect.ChassisConfigID, 1)
 	if err != nil {
 		return err
 	}
@@ -149,7 +174,7 @@ func (r *Reconciler) reconcileChassisConfiguration(ctx context.Context, target *
 		ccState.ConfigID = deviceConfigAspect.ChassisConfigID
 		ccState.Updated = time.Now()
 		ccState.Status.State = provisionerapi.ConfigStatus_FAILED
-		err = utils.UpdateObjectAspect(ctx, r.topo, target, "chassis", ccState)
+		err = utils.UpdateObjectAspect(ctx, m.topo, target, "chassis", ccState)
 		if err != nil {
 			return err
 		}
@@ -160,7 +185,7 @@ func (r *Reconciler) reconcileChassisConfiguration(ctx context.Context, target *
 	ccState.ConfigID = deviceConfigAspect.ChassisConfigID
 	ccState.Updated = time.Now()
 	ccState.Status.State = provisionerapi.ConfigStatus_APPLIED
-	err = utils.UpdateObjectAspect(ctx, r.topo, target, "chassis", ccState)
+	err = utils.UpdateObjectAspect(ctx, m.topo, target, "chassis", ccState)
 	if err != nil {
 		return err
 	}

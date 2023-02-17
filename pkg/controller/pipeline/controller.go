@@ -8,7 +8,6 @@ package pipeline
 import (
 	"context"
 	"github.com/onosproject/device-provisioner/pkg/controller/utils"
-	"github.com/onosproject/device-provisioner/pkg/controller/watchers"
 	configstore "github.com/onosproject/device-provisioner/pkg/store/configs"
 	"github.com/onosproject/device-provisioner/pkg/store/topo"
 	provisionerapi "github.com/onosproject/onos-api/go/onos/provisioner"
@@ -22,72 +21,86 @@ import (
 	p4info "github.com/p4lang/p4runtime/go/p4/config/v1"
 	p4api "github.com/p4lang/p4runtime/go/p4/v1"
 	"google.golang.org/protobuf/encoding/prototext"
+	"sync"
 
 	"time"
 )
 
 var log = logging.GetLogger()
 
+const queueSize = 100
+
 const (
 	defaultTimeout      = 30 * time.Second
 	provisionerRoleName = "provisioner"
-	queryPeriod         = 2 * time.Minute
+	queryPeriod         = 10 * time.Second
 	pipelineKind        = "pipeline"
 )
 
-// NewReconciler returns a new pipeline reconciler
-func NewReconciler(topo topo.Store, conns p4rtclient.ConnManager, configStore configstore.ConfigStore, realmOptions *realm.Options) *Reconciler {
-	reconciler := &Reconciler{
+// NewManager returns a new pipeline controller manager
+func NewManager(topo topo.Store, conns p4rtclient.ConnManager, configStore configstore.ConfigStore, realmOptions *realm.Options) *Manager {
+	manager := &Manager{
 		conns:        conns,
 		topo:         topo,
 		configStore:  configStore,
 		realmOptions: realmOptions,
 	}
-	return reconciler
+	return manager
 
 }
 
-// Reconciler reconciles pipeline configuration
-type Reconciler struct {
+// Manager reconciles pipeline configuration
+type Manager struct {
 	conns        p4rtclient.ConnManager
 	topo         topo.Store
 	configStore  configstore.ConfigStore
 	realmOptions *realm.Options
+	cancel       context.CancelFunc
+	mu           sync.Mutex
 }
 
 // Start starts new reconciler
-func (r *Reconciler) Start() error {
-	topoWatcher := watchers.TopoWatcher{
-		Topo:         r.topo,
-		RealmOptions: r.realmOptions,
+func (m *Manager) Start() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if m.cancel != nil {
+		return nil
 	}
+	pipelineController := controller.NewController(m.reconcile)
 
-	err := topoWatcher.Start(r.Reconcile)
+	eventCh := make(chan topoapi.Event, queueSize)
+	ctx, cancel := context.WithCancel(context.Background())
+
+	filter := utils.RealmQueryFilter(m.realmOptions)
+	err := m.topo.Watch(ctx, eventCh, filter)
 	if err != nil {
+		cancel()
 		return err
 	}
-	queryWatcher := watchers.TopoPeriodicWatcher{
-		Topo:         r.topo,
-		RealmOptions: r.realmOptions,
-		QueryPeriod:  queryPeriod,
-	}
-	err = queryWatcher.Start(r.Reconcile)
-	if err != nil {
-		return err
-	}
+	m.cancel = cancel
+	go func() {
+		for event := range eventCh {
+			if _, ok := event.Object.Obj.(*topoapi.Object_Entity); ok {
+				err := pipelineController.Reconcile(event.Object.ID)
+				if err != nil {
+					log.Warnw("Failed to reconcile object", "objectID", event.Object.ID, "error", err)
+				}
 
+			}
+		}
+	}()
 	return nil
 }
 
 // Reconcile reconciles device pipeline config
-func (r *Reconciler) Reconcile(ctx context.Context, request controller.Request[topoapi.ID]) controller.Directive[topoapi.ID] {
+func (m *Manager) reconcile(ctx context.Context, request controller.Request[topoapi.ID]) controller.Directive[topoapi.ID] {
 	ctx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
 
 	targetID := request.ID
 	log.Infow("Reconciling device pipeline config", "targetID", targetID)
 
-	target, err := r.topo.Get(ctx, targetID)
+	target, err := m.topo.Get(ctx, targetID)
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			log.Warnw("Failed reconciling device pipeline config", "targetID", targetID, "error", err)
@@ -96,7 +109,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, request controller.Request[t
 		return request.Ack()
 	}
 
-	err = r.reconcilePipelineConfiguration(ctx, target)
+	err = m.reconcilePipelineConfiguration(ctx, target)
 	if err != nil {
 		log.Warnw("Failed reconciling device pipeline configuration", "targetID", targetID, "error", err)
 		return request.Retry(err)
@@ -105,7 +118,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, request controller.Request[t
 	return request.Ack()
 }
 
-func (r *Reconciler) reconcilePipelineConfiguration(ctx context.Context, target *topoapi.Object) error {
+func (m *Manager) reconcilePipelineConfiguration(ctx context.Context, target *topoapi.Object) error {
 	targetID := target.ID
 	deviceConfigAspect := &provisionerapi.DeviceConfig{}
 	err := target.GetAspect(deviceConfigAspect)
@@ -122,10 +135,11 @@ func (r *Reconciler) reconcilePipelineConfiguration(ctx context.Context, target 
 	pcState := &provisionerapi.PipelineConfigState{}
 	err = target.GetAspect(pcState)
 	if err != nil {
+		log.Warnw("Pipeline config state aspect not found", "targetID", targetID, "error", err)
 		pcState.ConfigID = deviceConfigAspect.PipelineConfigID
 		pcState.Updated = time.Now()
 		pcState.Status.State = provisionerapi.ConfigStatus_PENDING
-		err = utils.UpdateObjectAspect(ctx, r.topo, target, pipelineKind, pcState)
+		err = utils.UpdateObjectAspect(ctx, m.topo, target, pipelineKind, pcState)
 		if err != nil {
 			return err
 		}
@@ -136,33 +150,33 @@ func (r *Reconciler) reconcilePipelineConfiguration(ctx context.Context, target 
 		pcState.ConfigID = deviceConfigAspect.PipelineConfigID
 		pcState.Updated = time.Now()
 		pcState.Status.State = provisionerapi.ConfigStatus_PENDING
-		err = utils.UpdateObjectAspect(ctx, r.topo, target, pipelineKind, pcState)
+		err = utils.UpdateObjectAspect(ctx, m.topo, target, pipelineKind, pcState)
 		if err != nil {
 			return err
 		}
 		return nil
 	}
 
-	if pcState.Status.State != provisionerapi.ConfigStatus_PENDING {
-		log.Debugw("Device Pipeline config state is not in Pending state", "ConfigState", pcState.Status.State)
+	/*if pcState.Status.State != provisionerapi.ConfigStatus_PENDING {
+		log.Infow("Device Pipeline config state is not in Pending state", "targetID", targetID, "ConfigState", pcState.Status.State)
 		return nil
-	}
+	}*/
 
 	// Otherwise... get the pipeline config artifacts
-	artifacts, err := utils.GetArtifacts(ctx, r.configStore, deviceConfigAspect.PipelineConfigID, 2)
+	artifacts, err := utils.GetArtifacts(ctx, m.configStore, deviceConfigAspect.PipelineConfigID, 2)
 	if err != nil {
 		log.Warnw("Failed to retrieve artifacts", "targetID", targetID, "pipelineConfigID", deviceConfigAspect.PipelineConfigID, "error", err)
 		return err
 	}
 
-	newCookie, err := r.setPipelineConfig(ctx, target, artifacts[provisionerapi.P4InfoType], artifacts[provisionerapi.P4BinaryType], pcState.Cookie)
+	newCookie, err := m.setPipelineConfig(ctx, target, artifacts[provisionerapi.P4InfoType], artifacts[provisionerapi.P4BinaryType], pcState.Cookie)
 	if err != nil {
 		log.Warnw("Failed reconcile Stratum P4Runtime pipeline config", "targetID", targetID, "error", err)
 		pcState.ConfigID = deviceConfigAspect.PipelineConfigID
 		pcState.Updated = time.Now()
 		pcState.Status.State = provisionerapi.ConfigStatus_FAILED
 		pcState.Cookie = 0
-		err = utils.UpdateObjectAspect(ctx, r.topo, target, "pipeline", pcState)
+		err = utils.UpdateObjectAspect(ctx, m.topo, target, "pipeline", pcState)
 		if err != nil {
 			return err
 		}
@@ -178,23 +192,23 @@ func (r *Reconciler) reconcilePipelineConfiguration(ctx context.Context, target 
 	pcState.Updated = time.Now()
 	pcState.Status.State = provisionerapi.ConfigStatus_APPLIED
 	pcState.Cookie = newCookie
-	err = utils.UpdateObjectAspect(ctx, r.topo, target, "pipeline", pcState)
+	err = utils.UpdateObjectAspect(ctx, m.topo, target, "pipeline", pcState)
 	if err != nil {
 		return err
 	}
-	log.Infow("Device pipeline config is set successfully", "targetID", targetID)
+	log.Infow("Device pipeline config is set successfully", "targetID", targetID, "Status", pcState.Status.State)
 	return nil
 }
 
 // setPipelineConfig makes sure that the device has the given P4 pipeline configuration applied
-func (r *Reconciler) setPipelineConfig(ctx context.Context, target *topoapi.Object, info []byte, binary []byte, cookie uint64) (uint64, error) {
+func (m *Manager) setPipelineConfig(ctx context.Context, target *topoapi.Object, info []byte, binary []byte, cookie uint64) (uint64, error) {
 	stratumAgents := &topoapi.StratumAgents{}
 	if err := target.GetAspect(stratumAgents); err != nil {
 		log.Warnw("Failed to extract stratum agents aspect", "error", err)
 		return 0, err
 	}
 
-	p4rtConn, err := r.conns.GetByTarget(ctx, target.ID)
+	p4rtConn, err := m.conns.GetByTarget(ctx, target.ID)
 	if err != nil {
 		log.Warnw("Connection not found for target", "target ID", target.ID)
 		return 0, err
