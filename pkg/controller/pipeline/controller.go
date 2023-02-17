@@ -29,7 +29,6 @@ import (
 var log = logging.GetLogger()
 
 const (
-	defaultTimeout      = 45 * time.Second
 	provisionerRoleName = "provisioner"
 	queryPeriod         = 10 * time.Second
 	pipelineKind        = "pipeline"
@@ -66,7 +65,6 @@ func (m *Manager) Start() error {
 		return nil
 	}
 	pipelineController := controller.NewController(m.reconcile)
-
 	eventCh := make(chan topoapi.Event, queueSize)
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -88,6 +86,7 @@ func (m *Manager) Start() error {
 			}
 		}
 	}()
+
 	return nil
 }
 
@@ -155,18 +154,6 @@ func (m *Manager) reconcilePipelineConfiguration(ctx context.Context, target *to
 		return nil
 	}
 
-	if pcState.Status.State != provisionerapi.ConfigStatus_PENDING {
-		log.Infow("Device Pipeline config state is not in Pending state", "targetID", targetID, "ConfigState", pcState.Status.State)
-		return nil
-	}
-
-	// Otherwise... get the pipeline config artifacts
-	artifacts, err := utils.GetArtifacts(ctx, m.configStore, deviceConfigAspect.PipelineConfigID, 2)
-	if err != nil {
-		log.Warnw("Failed to retrieve artifacts", "targetID", targetID, "pipelineConfigID", deviceConfigAspect.PipelineConfigID, "error", err)
-		return err
-	}
-
 	stratumAgents := &topoapi.StratumAgents{}
 	if err := target.GetAspect(stratumAgents); err != nil {
 		log.Warnw("Failed to extract stratum agents aspect", "error", err)
@@ -200,7 +187,20 @@ func (m *Manager) reconcilePipelineConfiguration(ctx context.Context, target *to
 
 	// if that matches our cookie, we're good
 	if pcState.Cookie == gr.Config.Cookie.Cookie && pcState.Cookie > 0 {
+		log.Infow("Device pipeline config is up to date")
 		return nil
+	}
+
+	if pcState.Status.State != provisionerapi.ConfigStatus_PENDING {
+		log.Infow("Device Pipeline config state is not in Pending state", "targetID", targetID, "ConfigState", pcState.Status.State)
+		return nil
+	}
+
+	// Otherwise... get the pipeline config artifacts
+	artifacts, err := utils.GetArtifacts(ctx, m.configStore, deviceConfigAspect.PipelineConfigID, 2)
+	if err != nil {
+		log.Warnw("Failed to retrieve artifacts", "targetID", targetID, "pipelineConfigID", deviceConfigAspect.PipelineConfigID, "error", err)
+		return err
 	}
 
 	info := artifacts[provisionerapi.P4InfoType]
